@@ -16,13 +16,17 @@ import {
 @Injectable()
 export class ZoomService {
   private readonly logger = new Logger(ZoomService.name);
-  private readonly zoomApiBaseUrl = 'https://api.zoom.us/v2';
-  private readonly zoomOAuthUrl = 'https://zoom.us/oauth/token';
+  private readonly zoomApiBaseUrl: string;
+  private readonly zoomOAuthUrl: string;
 
   // Store for tracking participants (in production, use database)
   private meetingParticipants: Map<string, ZoomParticipantDto[]> = new Map();
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) {
+    this.zoomApiBaseUrl =
+      this.configService.getOrThrow<string>('ZOOM_API_BASE_URL');
+    this.zoomOAuthUrl = this.configService.getOrThrow<string>('ZOOM_AUTH_URL');
+  }
 
   handleWebhook(input: { webhookData: ZoomWebhookDto }) {
     const { event, payload } = input.webhookData;

@@ -1,12 +1,28 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ZoomMeetingEndedDto, ZoomParticipantDto, ZoomWebhookDto } from './dto';
+import { ConfigService } from '@nestjs/config';
+import {
+  CreateZoomMeetingDto,
+  UpdateZoomMeetingDto,
+  ZoomCreateMeetingResponseDto,
+  ZoomMeetingEndedDto,
+  ZoomMeetingRecordingsResponseDto,
+  ZoomOAuthTokenResponseDto,
+  ZoomParticipantDto,
+  ZoomPastMeetingParticipantsResponseDto,
+  ZoomUserResponseDto,
+  ZoomWebhookDto,
+} from './dto';
 
 @Injectable()
 export class ZoomService {
   private readonly logger = new Logger(ZoomService.name);
+  private readonly zoomApiBaseUrl = 'https://api.zoom.us/v2';
+  private readonly zoomOAuthUrl = 'https://zoom.us/oauth/token';
 
   // Store for tracking participants (in production, use database)
   private meetingParticipants: Map<string, ZoomParticipantDto[]> = new Map();
+
+  constructor(private configService: ConfigService) {}
 
   handleWebhook(input: { webhookData: ZoomWebhookDto }) {
     const { event, payload } = input.webhookData;
@@ -179,5 +195,289 @@ export class ZoomService {
     // Using HMAC SHA-256 with the webhook secret token
     this.logger.warn('Webhook signature verification not implemented');
     return true;
+  }
+
+  async getBearerToken(): Promise<ZoomOAuthTokenResponseDto> {
+    const accountId = this.configService.getOrThrow<string>('ZOOM_ACCOUNT_ID');
+    const clientId = this.configService.getOrThrow<string>('ZOOM_CLIENT_ID');
+    const clientSecret =
+      this.configService.getOrThrow<string>('ZOOM_CLIENT_SECRET');
+
+    const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString(
+      'base64',
+    );
+
+    const url = `${this.zoomOAuthUrl}?grant_type=account_credentials&account_id=${accountId}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${authHeader}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to get Zoom OAuth token: ${response.status} - ${errorText}`,
+        );
+        throw new Error(
+          `Failed to get Zoom OAuth token: ${response.status} - ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as ZoomOAuthTokenResponseDto;
+      return data;
+    } catch (error) {
+      this.logger.error(`Error getting Zoom OAuth token: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a Zoom meeting
+   */
+  async createMeeting(
+    meetingData: CreateZoomMeetingDto,
+  ): Promise<ZoomCreateMeetingResponseDto> {
+    const accessToken = await this.getBearerToken();
+    const user = await this.getCurrentUser(accessToken.access_token);
+    const userId = user.id;
+
+    const url = `${this.zoomApiBaseUrl}/users/${userId}/meetings`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken.access_token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(meetingData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to create Zoom meeting: ${response.status} - ${errorText}`,
+        );
+        throw new Error(
+          `Failed to create Zoom meeting: ${response.status} - ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as ZoomCreateMeetingResponseDto;
+      this.logger.log(`Successfully created Zoom meeting: ${data.id}`);
+      return data;
+    } catch (error) {
+      this.logger.error(`Error creating Zoom meeting: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current Zoom user information
+   */
+  async getCurrentUser(accessToken?: string): Promise<ZoomUserResponseDto> {
+    const token = accessToken || (await this.getBearerToken()).access_token;
+
+    const url = `${this.zoomApiBaseUrl}/users/me`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to get Zoom user: ${response.status} - ${errorText}`,
+        );
+        throw new Error(
+          `Failed to get Zoom user: ${response.status} - ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as ZoomUserResponseDto;
+      this.logger.log(`Successfully retrieved Zoom user: ${data.id}`);
+      return data;
+    } catch (error) {
+      this.logger.error(`Error getting Zoom user: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a Zoom meeting
+   */
+  async updateMeeting(
+    meetingId: number,
+    meetingData: UpdateZoomMeetingDto,
+  ): Promise<string> {
+    const accessToken = await this.getBearerToken();
+
+    const url = `${this.zoomApiBaseUrl}/meetings/${meetingId}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken.access_token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(meetingData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to update Zoom meeting: ${response.status} - ${errorText}`,
+        );
+        throw new Error(
+          `Failed to update Zoom meeting: ${response.status} - ${errorText}`,
+        );
+      }
+
+      this.logger.log(`Successfully updated Zoom meeting: ${meetingId}`);
+      return 'Update succesful';
+    } catch (error) {
+      this.logger.error(`Error updating Zoom meeting: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a Zoom meeting
+   */
+  async deleteMeeting(meetingId: number): Promise<void> {
+    const accessToken = await this.getBearerToken();
+
+    const url = `${this.zoomApiBaseUrl}/meetings/${meetingId}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken.access_token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to delete Zoom meeting: ${response.status} - ${errorText}`,
+        );
+        throw new Error(
+          `Failed to delete Zoom meeting: ${response.status} - ${errorText}`,
+        );
+      }
+
+      this.logger.log(`Successfully deleted Zoom meeting: ${meetingId}`);
+    } catch (error) {
+      this.logger.error(`Error deleting Zoom meeting: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get past meeting participants
+   */
+  async getPastMeetingParticipants(
+    meetingId: number,
+    pageSize: number = 30,
+    nextPageToken?: string,
+  ): Promise<ZoomPastMeetingParticipantsResponseDto> {
+    const accessToken = await this.getBearerToken();
+
+    let url = `${this.zoomApiBaseUrl}/past_meetings/${meetingId}/participants?page_size=${pageSize}`;
+    if (nextPageToken) {
+      url += `&next_page_token=${nextPageToken}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken.access_token}`,
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to get past meeting participants: ${response.status} - ${errorText}`,
+        );
+        throw new Error(
+          `Failed to get past meeting participants: ${response.status} - ${errorText}`,
+        );
+      }
+
+      const data =
+        (await response.json()) as ZoomPastMeetingParticipantsResponseDto;
+      this.logger.log(
+        `Successfully retrieved past meeting participants for meeting: ${meetingId}`,
+      );
+      return data;
+    } catch (error) {
+      this.logger.error(`Error getting past meeting participants: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get meeting recordings
+   */
+  async getMeetingRecordings(
+    meetingId: number,
+    includeFields?: string,
+    ttl: number = 1,
+  ): Promise<ZoomMeetingRecordingsResponseDto> {
+    const accessToken = await this.getBearerToken();
+
+    let url = `${this.zoomApiBaseUrl}/meetings/${meetingId}/recordings?ttl=${ttl}`;
+    if (includeFields) {
+      url += `&include_fields=${includeFields}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken.access_token}`,
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to get meeting recordings: ${response.status} - ${errorText}`,
+        );
+        throw new Error(
+          `Failed to get meeting recordings: ${response.status} - ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as ZoomMeetingRecordingsResponseDto;
+      this.logger.log(
+        `Successfully retrieved recordings for meeting: ${meetingId}`,
+      );
+      return data;
+    } catch (error) {
+      this.logger.error(`Error getting meeting recordings: ${error}`);
+      throw error;
+    }
   }
 }

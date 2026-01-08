@@ -1,7 +1,18 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsPhoneNumber, IsString } from 'class-validator';
 
 export class UpdateUserDto {
+  @ApiPropertyOptional({
+    description: 'User phone number',
+    example: '+919876543210',
+  })
+  @IsOptional()
+  @IsPhoneNumber(null, {
+    message:
+      'Invalid phone number format. Must include a valid country code, e.g., +919876543210',
+  })
+  phone?: string;
+
   @ApiPropertyOptional({
     description: 'TagMango platform integration ID',
     example: 'tm_12345',

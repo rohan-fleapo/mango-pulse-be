@@ -27,6 +27,13 @@ export class UserResponseDto {
   })
   name: string;
 
+  @ApiPropertyOptional({
+    description: 'User phone number',
+    example: '+919876543210',
+    nullable: true,
+  })
+  phone: string | null;
+
   @ApiProperty({
     description: 'User role',
     example: 'creator',

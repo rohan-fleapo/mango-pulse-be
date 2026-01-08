@@ -53,7 +53,7 @@ export class AuthService {
         tag_mango_id: tagMangoId ?? null,
         role: 'creator',
       })
-      .select('id, email, name, tag_mango_id, role, created_at')
+      .select('id, email, name, tag_mango_id, role, created_at, phone')
       .single();
 
     if (error) {
@@ -77,6 +77,7 @@ export class AuthService {
         name: createdUser.name,
         tagMangoId: createdUser.tag_mango_id,
         role: createdUser.role,
+        phone: createdUser.phone,
         createdAt: createdUser.created_at,
       },
       accessToken: token,
@@ -127,6 +128,7 @@ export class AuthService {
         name: user.name,
         tagMangoId: user.tag_mango_id,
         role: user.role,
+        phone: user.phone,
         createdAt: user.created_at,
       },
       accessToken: token,
@@ -154,7 +156,7 @@ export class AuthService {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, name, tag_mango_id, role, created_at')
+      .select('id, email, name, tag_mango_id, role, created_at, phone')
       .eq('id', input.userId)
       .single();
 
@@ -170,6 +172,7 @@ export class AuthService {
       name: user.name,
       tagMangoId: user.tag_mango_id,
       role: user.role,
+      phone: user.phone,
       createdAt: user.created_at,
     };
   }

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -18,7 +19,7 @@ import {
 import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { MessageResponseDto } from '../common/dto/response.dto';
-import { UpdateUserDto, UserResponseDto } from './dto';
+import { ImportUsersDto, UpdateUserDto, UserResponseDto } from './dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -40,7 +41,10 @@ export class UsersController {
     type: [UserResponseDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Creator role required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Creator role required',
+  })
   async findAll(): Promise<UserResponseDto[]> {
     return this.usersService.findAll();
   }
@@ -57,6 +61,24 @@ export class UsersController {
   })
   async getCreators(): Promise<UserResponseDto[]> {
     return this.usersService.getCreators();
+  }
+
+  @Post('import')
+  @Roles('creator')
+  @ApiOperation({
+    summary: 'Import users from CSV data',
+    description: 'Bulk import users (Creator only)',
+  })
+  @ApiBody({ type: ImportUsersDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Users import processed',
+  })
+  async importUsers(
+    @Body() input: ImportUsersDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.usersService.importUsers(input, userId);
   }
 
   @Get('profile')

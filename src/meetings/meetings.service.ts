@@ -4,6 +4,7 @@ import { SupabaseService } from 'src/supabase/supabase.service';
 import { CreateZoomMeetingDto, UpdateZoomMeetingDto } from 'src/zoom/dto';
 import { ZoomService } from 'src/zoom/zoom.service';
 import {
+  CreateMeetingEngagementsInput,
   CreateMeetingInput,
   CreateMeetingOutput,
   DeleteMeetingInput,
@@ -31,7 +32,15 @@ export class MeetingsService {
   async createMeeting(input: CreateMeetingInput): Promise<CreateMeetingOutput> {
     const { topic, startTime, duration, invitees, creatorId } = input;
 
-    // 1. Create Meeting in Zoom
+    let validatedUsers: Array<{ id: string; email: string }> | null = null;
+    if (invitees && invitees.length > 0) {
+      if (!creatorId) {
+        throw new Error('Creator ID is required to create meeting engagements');
+      }
+      validatedUsers = await this.validateInvitees(invitees, creatorId);
+    }
+
+    // 2. Create Meeting in Zoom
     const zoomPayload: CreateZoomMeetingDto = {
       topic,
       start_time: startTime,
@@ -49,7 +58,7 @@ export class MeetingsService {
 
     const zoomMeeting = await this.zoomService.createMeeting(zoomPayload);
 
-    // 2. Save to DB
+    // 3. Save to DB
     const startObj = new Date(startTime);
     const endObj = new Date(startObj.getTime() + duration * 60000);
 
@@ -80,9 +89,12 @@ export class MeetingsService {
 
     const meetingId = meetingData.id;
 
-    // 3. Create Engagements
-    if (invitees && invitees.length > 0) {
-      await this.createMeetingEngagements(meetingId, invitees);
+    // 4. Create Engagements (using already validated users)
+    if (validatedUsers && validatedUsers.length > 0) {
+      await this.createMeetingEngagements({
+        meetingId,
+        validatedUsers,
+      });
     }
 
     return {
@@ -96,37 +108,68 @@ export class MeetingsService {
     };
   }
 
-  private async createMeetingEngagements(meetingId: string, emails: string[]) {
-    // Find users by emails
+  /**
+   * Validates that all invitee emails exist and belong to the creator
+   * @returns Array of validated user objects with id and email
+   * @throws Error if validation fails
+   */
+  private async validateInvitees(
+    emails: string[],
+    creatorId: string,
+  ): Promise<Array<{ id: string; email: string }>> {
     const { data: users, error: usersError } = await this.supabaseAdmin
       .from('users')
       .select('id, email')
-      .in('email', emails);
+      .in('email', emails)
+      .eq('creator_id', creatorId);
 
     if (usersError) {
       this.logger.error(
-        `Failed to fetch users for engagement: ${usersError.message}`,
+        `Failed to fetch users for validation: ${usersError.message}`,
       );
-      return;
+      throw new Error(
+        `Failed to fetch users for validation: ${usersError.message}`,
+      );
     }
 
-    if (!users || users.length === 0) {
-      return;
+    // Check if all requested emails were found
+    if (!users || users.length !== emails.length) {
+      const foundEmails = users?.map((u: { email: string }) => u.email) ?? [];
+      const missingEmails = emails.filter((e) => !foundEmails.includes(e));
+
+      throw new Error(
+        `One or more users does not exist or does not belong to this creator: ${missingEmails.join(', ')}`,
+      );
     }
 
-    const engagements = users.map((user: { id: string; email: string }) => ({
-      user_id: user.id,
-      user_email: user.email,
-      meeting_id: meetingId,
-      interested: 'no-response' as const,
-    }));
+    return users as Array<{ id: string; email: string }>;
+  }
+
+  private async createMeetingEngagements(input: CreateMeetingEngagementsInput) {
+    const {
+      meetingId,
+      validatedUsers,
+    }: {
+      meetingId: string;
+      validatedUsers: Array<{ id: string; email: string }>;
+    } = input;
 
     const { error: engagementError } = await this.supabaseAdmin
       .from('meeting_engagements')
-      .insert(engagements);
+      .insert(
+        validatedUsers.map((user) => ({
+          user_id: user.id,
+          user_email: user.email,
+          meeting_id: meetingId,
+          interested: 'no-response' as const,
+        })),
+      );
 
     if (engagementError) {
       this.logger.error(
+        `Failed to create engagements: ${engagementError.message}`,
+      );
+      throw new Error(
         `Failed to create engagements: ${engagementError.message}`,
       );
     }
@@ -180,7 +223,7 @@ export class MeetingsService {
           duration ||
           (new Date(meetingTyped.scheduled_end_date).getTime() -
             new Date(meetingTyped.start_date).getTime()) /
-          60000;
+            60000;
         updateDbData.scheduled_end_date = new Date(
           new Date(startTime).getTime() + durationInMinutes * 60000,
         ).toISOString();
@@ -276,7 +319,7 @@ export class MeetingsService {
       throw new Error(`Failed to fetch meetings: ${error.message}`);
     }
 
-    const meetings = (data || []).map((meeting: MeetingRow) => ({
+    const meetings = (data ?? []).map((meeting: MeetingRow) => ({
       id: meeting.id,
       topic: meeting.topic || 'Untitled Meeting',
       link: meeting.link,

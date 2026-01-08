@@ -15,10 +15,15 @@ export class AnalyticsService {
     const { user, query } = input;
     const supabase = this.supabaseService.getAdminClient();
 
+    const { data: members } = await supabase
+      .from('users')
+      .select('creator_id')
+      .eq('creator_id', user.id);
+
     let meetingsQuery = supabase
       .from('meetings')
       .select('id, start_date, end_date, scheduled_end_date, creator_id')
-      .eq('creator_id', user.creatorId);
+      .eq('creator_id', user.id);
 
     if (query.startDate) {
       meetingsQuery = meetingsQuery.gte('start_date', query.startDate);
@@ -31,6 +36,7 @@ export class AnalyticsService {
     const { data: meetings } = await meetingsQuery;
 
     return {
+      totalMembers: members?.length ?? 0,
       totalMeetings: meetings?.length ?? 0,
     };
   }

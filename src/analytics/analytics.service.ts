@@ -1,13 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { UserDto } from '../users/dto';
-import { AnalyticsQueryDto } from './dto';
+import {
+  ActivityStatsDto,
+  AnalyticsQueryDto,
+  EngagementStatsDto,
+  FeedbackStatsDto,
+} from './dto';
 
 @Injectable()
 export class AnalyticsService {
   constructor(private supabaseService: SupabaseService) {}
 
-  async getEngagementStats(input: { user: UserDto; query: AnalyticsQueryDto }) {
+  async getEngagementStats(input: {
+    user: UserDto;
+    query: AnalyticsQueryDto;
+  }): Promise<EngagementStatsDto> {
     const { user, query } = input;
     const supabase = this.supabaseService.getAdminClient();
 
@@ -133,7 +141,10 @@ export class AnalyticsService {
     };
   }
 
-  async getFeedbackStats(input: { user: UserDto; query: AnalyticsQueryDto }) {
+  async getFeedbackStats(input: {
+    user: UserDto;
+    query: AnalyticsQueryDto;
+  }): Promise<FeedbackStatsDto> {
     const { user, query } = input;
     const supabase = this.supabaseService.getAdminClient();
 
@@ -241,7 +252,10 @@ export class AnalyticsService {
     };
   }
 
-  async getActivityStats(input: { user: UserDto; query: AnalyticsQueryDto }) {
+  async getActivityStats(input: {
+    user: UserDto;
+    query: AnalyticsQueryDto;
+  }): Promise<ActivityStatsDto> {
     const { user, query } = input;
     const supabase = this.supabaseService.getAdminClient();
 

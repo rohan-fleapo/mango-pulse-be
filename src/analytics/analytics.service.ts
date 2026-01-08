@@ -66,10 +66,46 @@ export class AnalyticsService {
       }
     }
 
+    const durationBreakdown = {
+      '0-15': 0,
+      '15-30': 0,
+      '30-45': 0,
+      '45-60': 0,
+      '60+': 0,
+    };
+
+    if (meetings) {
+      meetings.forEach((meeting) => {
+        if (
+          meeting.start_date &&
+          (meeting.end_date || meeting.scheduled_end_date)
+        ) {
+          const startTime = new Date(meeting.start_date).getTime();
+          const endTime = new Date(
+            meeting.end_date || meeting.scheduled_end_date,
+          ).getTime();
+          const durationMinutes = (endTime - startTime) / (1000 * 60);
+
+          if (durationMinutes <= 15) {
+            durationBreakdown['0-15']++;
+          } else if (durationMinutes <= 30) {
+            durationBreakdown['15-30']++;
+          } else if (durationMinutes <= 45) {
+            durationBreakdown['30-45']++;
+          } else if (durationMinutes <= 60) {
+            durationBreakdown['45-60']++;
+          } else {
+            durationBreakdown['60+']++;
+          }
+        }
+      });
+    }
+
     return {
       totalMembers: members?.length ?? 0,
       totalMeetings: meetings?.length ?? 0,
       avgEngagementRate: parseFloat(avgEngagementRate.toFixed(2)),
+      durationBreakdown,
     };
   }
 

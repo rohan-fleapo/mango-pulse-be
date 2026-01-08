@@ -7,6 +7,7 @@ import { MeetingsModule } from './meetings/meetings.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { UsersModule } from './users/users.module';
 import { ZoomModule } from './zoom/zoom.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ZoomModule } from './zoom/zoom.module';
     UsersModule,
     ZoomModule,
     MeetingsModule,
+    AnalyticsModule,
   ],
   providers: [
     // Global JWT Auth Guard - all routes require authentication by default

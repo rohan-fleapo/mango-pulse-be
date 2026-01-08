@@ -2,6 +2,7 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
+import { UserDto } from '../users/dto';
 import { AnalyticsService } from './analytics.service';
 import {
   ActivityStatsDto,
@@ -9,13 +10,6 @@ import {
   EngagementStatsDto,
   FeedbackStatsDto,
 } from './dto';
-
-interface User {
-  id: string;
-  email: string;
-  role: 'member' | 'creator';
-  creatorId: string;
-}
 
 @ApiTags('Analytics')
 @ApiBearerAuth('JWT-auth')
@@ -28,7 +22,7 @@ export class AnalyticsController {
   @Get('engagement')
   @Roles('creator')
   async getEngagementStats(
-    @CurrentUser() user: User,
+    @CurrentUser() user: UserDto,
     @Query() query: AnalyticsQueryDto,
   ): Promise<EngagementStatsDto> {
     return this.analyticsService.getEngagementStats({ user, query });
@@ -38,7 +32,7 @@ export class AnalyticsController {
   @Get('feedback')
   @Roles('creator')
   async getFeedbackStats(
-    @CurrentUser() user: User,
+    @CurrentUser() user: UserDto,
     @Query() query: AnalyticsQueryDto,
   ): Promise<FeedbackStatsDto> {
     return this.analyticsService.getFeedbackStats({ user, query });
@@ -48,7 +42,7 @@ export class AnalyticsController {
   @Get('activity')
   @Roles('creator')
   async getActivityStats(
-    @CurrentUser() user: User,
+    @CurrentUser() user: UserDto,
     @Query() query: AnalyticsQueryDto,
   ): Promise<ActivityStatsDto> {
     return this.analyticsService.getActivityStats({ user, query });

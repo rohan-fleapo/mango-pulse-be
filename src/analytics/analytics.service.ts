@@ -66,11 +66,87 @@ export class AnalyticsService {
       }
     }
 
+    const durationBreakdown = {
+      '0-15': 0,
+      '15-30': 0,
+      '30-45': 0,
+      '45-60': 0,
+      '60+': 0,
+    };
+
+    if (meetings) {
+      meetings.forEach((meeting) => {
+        if (
+          meeting.start_date &&
+          (meeting.end_date || meeting.scheduled_end_date)
+        ) {
+          const startTime = new Date(meeting.start_date).getTime();
+          const endTime = new Date(
+            meeting.end_date || meeting.scheduled_end_date,
+          ).getTime();
+          const durationMinutes = (endTime - startTime) / (1000 * 60);
+
+          if (durationMinutes <= 15) {
+            durationBreakdown['0-15']++;
+          } else if (durationMinutes <= 30) {
+            durationBreakdown['15-30']++;
+          } else if (durationMinutes <= 45) {
+            durationBreakdown['30-45']++;
+          } else if (durationMinutes <= 60) {
+            durationBreakdown['45-60']++;
+          } else {
+            durationBreakdown['60+']++;
+          }
+        }
+      });
+    }
+
+    const timeline = await this.getMeetingsTimeline(user);
+
     return {
       totalMembers: members?.length ?? 0,
       totalMeetings: meetings?.length ?? 0,
       avgEngagementRate: parseFloat(avgEngagementRate.toFixed(2)),
+      durationBreakdown,
+      timeline,
     };
+  }
+
+  private async getMeetingsTimeline(user: UserDto) {
+    const supabase = this.supabaseService.getAdminClient();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 14);
+    const endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
+    const { data: meetings } = await supabase
+      .from('meetings')
+      .select('start_date')
+      .eq('creator_id', user.id)
+      .gte('start_date', startDate.toISOString())
+      .lt('start_date', endDate.toISOString());
+
+    const countsByDate = new Map<string, number>();
+    meetings?.forEach((meeting) => {
+      const date = meeting.start_date.split('T')[0];
+      countsByDate.set(date, (countsByDate.get(date) || 0) + 1);
+    });
+
+    const timeline = [];
+    for (let i = 14; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      timeline.push({
+        date: dateStr,
+        attendees: countsByDate.get(dateStr) || 0,
+      });
+    }
+
+    return timeline;
   }
 
   async getAiInsights(input: {

@@ -32,6 +32,20 @@ export class MeetingDurationBreakdown {
   '60+': number;
 }
 
+export class MeetingTimelineItem {
+  @ApiProperty({
+    description: 'Date of the meeting',
+    example: 'Jan 11',
+  })
+  date: string;
+
+  @ApiProperty({
+    description: 'Number of attendees',
+    example: 2,
+  })
+  attendees: number;
+}
+
 export class GetMeetingsStatsOutput {
   @ApiProperty({
     description: 'Total number of members under the creator',
@@ -53,4 +67,10 @@ export class GetMeetingsStatsOutput {
     type: MeetingDurationBreakdown,
   })
   durationBreakdown: MeetingDurationBreakdown;
+
+  @ApiProperty({
+    description: 'Timeline of meetings over the past 15 days',
+    type: [MeetingTimelineItem],
+  })
+  timeline: MeetingTimelineItem[];
 }

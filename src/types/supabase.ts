@@ -167,41 +167,53 @@ export type Database = {
       meetings: {
         Row: {
           created_at: string | null
+          creator_id: string
           end_date: string | null
           id: string
           invite_sent_at: string | null
           link: string
+          meeting_id: string | null
           notify_before_mins: number | null
           recording_link: string | null
+          recording_password: string | null
           scheduled_end_date: string
           send_not_interested: boolean | null
           start_date: string
+          topic: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          creator_id: string
           end_date?: string | null
           id?: string
           invite_sent_at?: string | null
           link: string
+          meeting_id?: string | null
           notify_before_mins?: number | null
           recording_link?: string | null
+          recording_password?: string | null
           scheduled_end_date: string
           send_not_interested?: boolean | null
           start_date: string
+          topic?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          creator_id?: string
           end_date?: string | null
           id?: string
           invite_sent_at?: string | null
           link?: string
+          meeting_id?: string | null
           notify_before_mins?: number | null
           recording_link?: string | null
+          recording_password?: string | null
           scheduled_end_date?: string
           send_not_interested?: boolean | null
           start_date?: string
+          topic?: string | null
           updated_at?: string | null
         }
         Relationships: []

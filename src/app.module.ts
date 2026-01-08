@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { SupabaseModule } from './supabase/supabase.module';
 import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/guards';
+import { MeetingsModule } from './meetings/meetings.module';
+import { SupabaseModule } from './supabase/supabase.module';
 import { UsersModule } from './users/users.module';
 import { ZoomModule } from './zoom/zoom.module';
-import { JwtAuthGuard } from './auth/guards';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { JwtAuthGuard } from './auth/guards';
     AuthModule,
     UsersModule,
     ZoomModule,
+    MeetingsModule,
   ],
   providers: [
     // Global JWT Auth Guard - all routes require authentication by default

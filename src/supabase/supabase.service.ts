@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '../types/supabase';
 
 @Injectable()
 export class SupabaseService {
-  private supabase: SupabaseClient;
-  private supabaseAdmin: SupabaseClient;
+  private supabase: SupabaseClient<Database>;
+  private supabaseAdmin: SupabaseClient<Database>;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.getOrThrow<string>('SUPABASE_URL');
@@ -16,18 +17,18 @@ export class SupabaseService {
       'SUPABASE_SERVICE_ROLE_KEY',
     );
 
-    this.supabase = createClient(supabaseUrl, supabaseKey) as SupabaseClient;
-    this.supabaseAdmin = createClient(
+    this.supabase = createClient<Database>(supabaseUrl, supabaseKey);
+    this.supabaseAdmin = createClient<Database>(
       supabaseUrl,
       supabaseServiceKey,
-    ) as SupabaseClient;
+    );
   }
 
-  getClient(): SupabaseClient {
+  getClient(): SupabaseClient<Database> {
     return this.supabase;
   }
 
-  getAdminClient(): SupabaseClient {
+  getAdminClient(): SupabaseClient<Database> {
     return this.supabaseAdmin;
   }
 }

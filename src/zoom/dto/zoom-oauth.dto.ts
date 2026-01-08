@@ -260,7 +260,12 @@ class ZoomMeetingSettingsDto {
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
-  waiting_room?: boolean;
+  join_before_host?: boolean;
+
+  @ApiPropertyOptional({ example: 'cloud' })
+  @IsOptional()
+  @IsString()
+  auto_recording?: string;
 }
 
 export class CreateZoomMeetingDto {

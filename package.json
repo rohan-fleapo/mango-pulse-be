@@ -29,6 +29,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.4",
+    "@openrouter/sdk": "^0.3.11",
     "@supabase/supabase-js": "^2.90.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

@@ -69,7 +69,7 @@ export class AnalyticsService {
     return {
       totalMembers: members?.length ?? 0,
       totalMeetings: meetings?.length ?? 0,
-      avgEngagementRate,
+      avgEngagementRate: parseFloat(avgEngagementRate.toFixed(2)),
     };
   }
 

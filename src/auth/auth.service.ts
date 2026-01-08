@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { SupabaseService } from '../supabase/supabase.service';
-import { User } from '../types/supabase';
+import { Tables } from '../types/supabase';
 import { SignInDto, SignUpDto } from './dto';
 
 @Injectable()
@@ -60,7 +60,7 @@ export class AuthService {
       throw new ConflictException(`Failed to create user: ${error?.message}`);
     }
 
-    const createdUser = data as User;
+    const createdUser = data as Tables<'users'>;
 
     // Generate JWT token
     const token = this.generateToken({
@@ -92,7 +92,7 @@ export class AuthService {
       .from('users')
       .select('*')
       .eq('email', email)
-      .single()) as { data: User | null; error: unknown };
+      .single()) as { data: Tables<'users'> | null; error: unknown };
 
     if (error || !data) {
       throw new UnauthorizedException('Invalid credentials');
@@ -136,7 +136,7 @@ export class AuthService {
   private generateToken(input: {
     id: string;
     email: string;
-    role: 'member' | 'creator';
+    role: Tables<'users'>['role'];
     creatorId: string;
   }) {
     const payload = {
@@ -162,7 +162,7 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    const user = data as User;
+    const user = data as Tables<'users'>;
 
     return {
       id: user.id,

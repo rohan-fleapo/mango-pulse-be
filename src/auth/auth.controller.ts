@@ -1,24 +1,24 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
+  Get,
   HttpCode,
   HttpStatus,
-  Get,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
+import { UserResponseDto } from '../users/dto';
 import { AuthService } from './auth.service';
-import { SignUpDto, SignInDto } from './dto';
-import { Public, CurrentUser } from './decorators';
+import { CurrentUser, Public } from './decorators';
+import { AuthResponseDto, SignInDto, SignUpDto } from './dto';
 import { JwtAuthGuard } from './guards';
-import { AuthResponseDto, UserResponseDto } from '../common/dto/response.dto';
 
 @ApiTags('Auth')
 @Controller('auth')

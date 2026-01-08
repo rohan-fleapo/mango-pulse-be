@@ -13,7 +13,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"src/**/*.ts\" --fix",
-    "supabase:types": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.types.ts",
+    "supabase:generate": "supabase gen types typescript --project-id zltldgpmrrxufkuqnhgd --schema public > src/types/supabase.ts",
     "supabase:types:local": "npx supabase gen types typescript --local > src/types/database.types.ts",
     "supabase:start": "npx supabase start",
     "supabase:stop": "npx supabase stop",

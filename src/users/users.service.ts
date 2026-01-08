@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import { User } from '../types/supabase';
+import { Tables } from '../types/supabase';
 import { UpdateUserDto } from './dto';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class UsersService {
       throw new Error(`Failed to fetch users: ${error.message}`);
     }
 
-    const users = (data ?? []) as User[];
+    const users = (data ?? []) as Tables<'users'>[];
 
     return users.map((user) => ({
       id: user.id,
@@ -45,7 +45,7 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${input.id} not found`);
     }
 
-    const user = data as User;
+    const user = data as Tables<'users'>;
 
     return {
       id: user.id,
@@ -71,7 +71,7 @@ export class UsersService {
       return null;
     }
 
-    const user = data as User;
+    const user = data as Tables<'users'>;
 
     return {
       id: user.id,
@@ -97,7 +97,7 @@ export class UsersService {
       return null;
     }
 
-    const user = data as User;
+    const user = data as Tables<'users'>;
 
     return {
       id: user.id,
@@ -138,7 +138,7 @@ export class UsersService {
       throw new Error(`Failed to update user: ${error?.message}`);
     }
 
-    const updatedUser = data as User;
+    const updatedUser = data as Tables<'users'>;
 
     return {
       id: updatedUser.id,
@@ -179,7 +179,7 @@ export class UsersService {
       throw new Error(`Failed to fetch creators: ${error.message}`);
     }
 
-    const users = (data ?? []) as User[];
+    const users = (data ?? []) as Tables<'users'>[];
 
     return users.map((user) => ({
       id: user.id,

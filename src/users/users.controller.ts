@@ -17,11 +17,8 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
-import {
-  MessageResponseDto,
-  UserResponseDto,
-} from '../common/dto/response.dto';
-import { UpdateUserDto } from './dto';
+import { MessageResponseDto } from '../common/dto/response.dto';
+import { UpdateUserDto, UserResponseDto } from './dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')

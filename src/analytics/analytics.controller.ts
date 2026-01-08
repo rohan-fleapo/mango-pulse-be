@@ -4,7 +4,7 @@ import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { UserDto } from '../users/dto';
 import { AnalyticsService } from './analytics.service';
-import { AnalyticsQueryDto } from './dto';
+import { AiInsightsOutput, AnalyticsQueryDto } from './dto';
 import { GetMeetingsStatsOutput } from './dto/meeting-stats.dto';
 
 @ApiTags('Analytics')
@@ -22,5 +22,15 @@ export class AnalyticsController {
     @Query() query: AnalyticsQueryDto,
   ): Promise<GetMeetingsStatsOutput> {
     return this.analyticsService.getMeetingsStats({ user, query });
+  }
+
+  @ApiResponse({ type: AiInsightsOutput })
+  @Get('ai-insights')
+  @Roles('creator')
+  async getMeetingsAiInsights(
+    @CurrentUser() user: UserDto,
+    @Query() query: AnalyticsQueryDto,
+  ): Promise<AiInsightsOutput> {
+    return this.analyticsService.getAiInsights({ user, query });
   }
 }

@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { OpenRouter } from '@openrouter/sdk';
 import { SupabaseService } from '../supabase/supabase.service';
 import { UserDto } from '../users/dto';
-import { AnalyticsQueryDto } from './dto';
+import { AiInsightsOutput, AnalyticsQueryDto } from './dto';
 import { GetMeetingsStatsOutput } from './dto/meeting-stats.dto';
+import { MEETING_INSIGHTS_PROMPT } from './prompts/meeting-insights.prompt';
 
 @Injectable()
 export class AnalyticsService {
@@ -69,5 +71,65 @@ export class AnalyticsService {
       totalMeetings: meetings?.length ?? 0,
       avgEngagementRate,
     };
+  }
+
+  async getAiInsights(input: {
+    user: UserDto;
+    query: AnalyticsQueryDto;
+  }): Promise<AiInsightsOutput> {
+    const stats = await this.getMeetingsStats(input);
+    const aiInsights = await this.generateAiInsights(stats);
+
+    return aiInsights;
+  }
+
+  private async generateAiInsights(stats: {
+    totalMembers: number;
+    totalMeetings: number;
+    avgEngagementRate: number;
+  }): Promise<AiInsightsOutput> {
+    const openrouter = new OpenRouter({
+      apiKey: process.env.OPENROUTER_API_KEY,
+    });
+
+    const prompt = MEETING_INSIGHTS_PROMPT.replace(
+      '{{totalMembers}}',
+      stats.totalMembers.toString(),
+    )
+      .replace('{{totalMeetings}}', stats.totalMeetings.toString())
+      .replace('{{avgEngagementRate}}', stats.avgEngagementRate.toFixed(2));
+
+    const stream = await openrouter.chat.send({
+      model: 'mistralai/devstral-2512:free',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      stream: true,
+    });
+
+    let aiResponse = '';
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content;
+      if (content) {
+        aiResponse += content;
+      }
+    }
+
+    try {
+      const parsed = JSON.parse(aiResponse.trim());
+      return {
+        communityInsights: parsed.communityInsights,
+        recommendations: parsed.recommendations,
+      };
+    } catch (error) {
+      console.error('Failed to parse AI response:', error);
+      return {
+        communityInsights: [],
+        recommendations: [],
+      };
+    }
   }
 }

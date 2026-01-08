@@ -58,6 +58,26 @@ jobs:
           task-definition: ${{ env.ECS_TASK_DEFINITION }}
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build-image.outputs.image }}
+          environment-variables: |
+            NODE_ENV=production
+            PORT=8080
+            TZ=UTC
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            DATABASE_HOST=${{ secrets.DATABASE_HOST }}
+            DATABASE_PORT=${{ secrets.DATABASE_PORT }}
+            DATABASE_USER=${{ secrets.DATABASE_USER }}
+            DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}
+            DATABASE_NAME=${{ secrets.DATABASE_NAME }}
+            ZOOM_ACCOUNT_ID=${{ secrets.ZOOM_ACCOUNT_ID }}
+            ZOOM_CLIENT_ID=${{ secrets.ZOOM_CLIENT_ID }}
+            ZOOM_CLIENT_SECRET=${{ secrets.ZOOM_CLIENT_SECRET }}
+            ZOOM_API_BASE_URL=${{ secrets.ZOOM_API_BASE_URL }}
+            ZOOM_AUTH_URL=${{ secrets.ZOOM_AUTH_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

@@ -1,0 +1,7 @@
+ALTER TABLE users
+ALTER COLUMN creator_id SET NOT NULL;
+
+ALTER TABLE users
+ADD CONSTRAINT fk_users_creator
+FOREIGN KEY (creator_id) REFERENCES users(id)
+ON DELETE CASCADE;

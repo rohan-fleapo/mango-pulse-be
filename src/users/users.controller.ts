@@ -1,28 +1,28 @@
 import {
-  Controller,
-  Get,
-  Patch,
-  Delete,
-  Param,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
-  ApiParam,
   ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { UsersService } from './users.service';
-import { UpdateUserDto } from './dto';
+import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
-import { Roles, CurrentUser } from '../auth/decorators';
 import {
-  UserResponseDto,
   MessageResponseDto,
+  UserResponseDto,
 } from '../common/dto/response.dto';
+import { UpdateUserDto } from './dto';
+import { UsersService } from './users.service';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -32,10 +32,10 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Roles('coach')
+  @Roles('creator')
   @ApiOperation({
     summary: 'List all users',
-    description: 'Get a list of all users (Coach only)',
+    description: 'Get a list of all users (Creator only)',
   })
   @ApiResponse({
     status: 200,
@@ -43,23 +43,23 @@ export class UsersController {
     type: [UserResponseDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Coach role required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Creator role required' })
   async findAll(): Promise<UserResponseDto[]> {
     return this.usersService.findAll();
   }
 
-  @Get('coaches')
+  @Get('creators')
   @ApiOperation({
-    summary: 'List all coaches',
-    description: 'Get a list of all users with coach role',
+    summary: 'List all creators',
+    description: 'Get a list of all users with creator role',
   })
   @ApiResponse({
     status: 200,
-    description: 'List of coaches retrieved successfully',
+    description: 'List of creators retrieved successfully',
     type: [UserResponseDto],
   })
-  async getCoaches(): Promise<UserResponseDto[]> {
-    return this.usersService.getCoaches();
+  async getCreators(): Promise<UserResponseDto[]> {
+    return this.usersService.getCreators();
   }
 
   @Get('profile')
@@ -79,10 +79,10 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles('coach')
+  @Roles('creator')
   @ApiOperation({
     summary: 'Get user by ID',
-    description: 'Get a specific user by their ID (Coach only)',
+    description: 'Get a specific user by their ID (Creator only)',
   })
   @ApiParam({
     name: 'id',
@@ -118,10 +118,10 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles('coach')
+  @Roles('creator')
   @ApiOperation({
     summary: 'Update user by ID',
-    description: 'Update a specific user by their ID (Coach only)',
+    description: 'Update a specific user by their ID (Creator only)',
   })
   @ApiParam({
     name: 'id',
@@ -143,10 +143,10 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('coach')
+  @Roles('creator')
   @ApiOperation({
     summary: 'Delete user',
-    description: 'Delete a user by their ID (Coach only)',
+    description: 'Delete a user by their ID (Creator only)',
   })
   @ApiParam({
     name: 'id',

@@ -12,7 +12,7 @@ export class UsersService {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, tag_mango_id, roles, created_at, updated_at')
+      .select('id, email, name, tag_mango_id, role, created_at, updated_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -24,8 +24,9 @@ export class UsersService {
     return users.map((user) => ({
       id: user.id,
       email: user.email,
+      name: user.name,
       tagMangoId: user.tag_mango_id,
-      roles: user.roles,
+      role: user.role,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     }));
@@ -36,7 +37,7 @@ export class UsersService {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, tag_mango_id, roles, created_at, updated_at')
+      .select('id, email, name, tag_mango_id, role, created_at, updated_at')
       .eq('id', input.id)
       .single();
 
@@ -49,8 +50,9 @@ export class UsersService {
     return {
       id: user.id,
       email: user.email,
+      name: user.name,
       tagMangoId: user.tag_mango_id,
-      roles: user.roles,
+      role: user.role,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     };
@@ -61,7 +63,7 @@ export class UsersService {
 
     const { data } = await supabase
       .from('users')
-      .select('id, email, tag_mango_id, roles, created_at, updated_at')
+      .select('id, email, name, tag_mango_id, role, created_at, updated_at')
       .eq('email', input.email)
       .single();
 
@@ -74,8 +76,9 @@ export class UsersService {
     return {
       id: user.id,
       email: user.email,
+      name: user.name,
       tagMangoId: user.tag_mango_id,
-      roles: user.roles,
+      role: user.role,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     };
@@ -86,7 +89,7 @@ export class UsersService {
 
     const { data } = await supabase
       .from('users')
-      .select('id, email, tag_mango_id, roles, created_at, updated_at')
+      .select('id, email, name, tag_mango_id, role, created_at, updated_at')
       .eq('tag_mango_id', input.tagMangoId)
       .single();
 
@@ -99,8 +102,9 @@ export class UsersService {
     return {
       id: user.id,
       email: user.email,
+      name: user.name,
       tagMangoId: user.tag_mango_id,
-      roles: user.roles,
+      role: user.role,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     };
@@ -116,15 +120,18 @@ export class UsersService {
     if (input.data.tagMangoId !== undefined) {
       updateData.tag_mango_id = input.data.tagMangoId;
     }
-    if (input.data.roles !== undefined) {
-      updateData.roles = input.data.roles;
+    if (input.data.role !== undefined) {
+      updateData.role = input.data.role;
+    }
+    if (input.data.name !== undefined) {
+      updateData.name = input.data.name;
     }
 
     const { data, error } = await supabase
       .from('users')
       .update(updateData)
       .eq('id', input.id)
-      .select('id, email, tag_mango_id, roles, created_at, updated_at')
+      .select('id, email, name, tag_mango_id, role, created_at, updated_at')
       .single();
 
     if (error || !data) {
@@ -136,8 +143,9 @@ export class UsersService {
     return {
       id: updatedUser.id,
       email: updatedUser.email,
+      name: updatedUser.name,
       tagMangoId: updatedUser.tag_mango_id,
-      roles: updatedUser.roles,
+      role: updatedUser.role,
       createdAt: updatedUser.created_at,
       updatedAt: updatedUser.updated_at,
     };
@@ -158,17 +166,17 @@ export class UsersService {
     return { message: `User with ID ${input.id} deleted successfully` };
   }
 
-  async getCoaches() {
+  async getCreators() {
     const supabase = this.supabaseService.getAdminClient();
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, tag_mango_id, roles, created_at, updated_at')
-      .contains('roles', ['coach'])
+      .select('id, email, name, tag_mango_id, role, created_at, updated_at')
+      .eq('role', 'creator')
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch coaches: ${error.message}`);
+      throw new Error(`Failed to fetch creators: ${error.message}`);
     }
 
     const users = (data ?? []) as User[];
@@ -176,8 +184,9 @@ export class UsersService {
     return users.map((user) => ({
       id: user.id,
       email: user.email,
+      name: user.name,
       tagMangoId: user.tag_mango_id,
-      roles: user.roles,
+      role: user.role,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     }));

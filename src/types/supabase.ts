@@ -25,8 +25,10 @@ export interface User {
   id: string;
   email: string;
   password: string;
+  name: string;
+  creator_id: string;
   tag_mango_id: string | null;
-  roles: ('user' | 'coach')[];
+  role: 'member' | 'creator';
   created_at: string;
   updated_at: string;
 }
@@ -63,7 +65,7 @@ export interface Database {
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
-      user_role: 'user' | 'coach';
+      user_role: 'member' | 'creator';
     };
   };
 }

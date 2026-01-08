@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsIn, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({
@@ -11,13 +11,20 @@ export class UpdateUserDto {
   tagMangoId?: string;
 
   @ApiPropertyOptional({
-    description: 'User roles array',
-    example: ['user', 'coach'],
-    enum: ['user', 'coach'],
-    isArray: true,
+    description: 'User full name',
+    example: 'John Doe',
   })
   @IsOptional()
-  @IsArray()
-  @IsIn(['user', 'coach'], { each: true })
-  roles?: ('user' | 'coach')[];
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({
+    description: 'User role',
+    example: 'creator',
+    enum: ['member', 'creator'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['member', 'creator'])
+  role?: 'member' | 'creator';
 }

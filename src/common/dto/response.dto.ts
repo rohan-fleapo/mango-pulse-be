@@ -21,12 +21,17 @@ export class UserResponseDto {
   tagMangoId: string | null;
 
   @ApiProperty({
-    description: 'User roles',
-    example: ['user'],
-    enum: ['user', 'coach'],
-    isArray: true,
+    description: 'User full name',
+    example: 'John Doe',
   })
-  roles: ('user' | 'coach')[];
+  name: string;
+
+  @ApiProperty({
+    description: 'User role',
+    example: 'creator',
+    enum: ['member', 'creator'],
+  })
+  role: 'member' | 'creator';
 
   @ApiProperty({
     description: 'Account creation timestamp',

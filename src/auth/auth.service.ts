@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 import { SupabaseService } from '../supabase/supabase.service';
 import { User } from '../types/supabase';
 import { SignInDto, SignUpDto } from './dto';
@@ -17,7 +18,8 @@ export class AuthService {
   ) {}
 
   async signUp(input: { input: SignUpDto }) {
-    const { email, password, tagMangoId, roles } = input.input;
+    console.log(input);
+    const { email, password, tagMangoId, name } = input.input;
     const supabase = this.supabaseService.getAdminClient();
 
     // Check if user already exists
@@ -35,19 +37,26 @@ export class AuthService {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    // Generate ID for creator
+    const id = uuidv4();
+
     // Create the user
+    // Enforcing role = 'creator' and creator_id = id
     const { data, error } = await supabase
       .from('users')
       .insert({
+        id,
+        creator_id: id,
         email,
+        name,
         password: hashedPassword,
         tag_mango_id: tagMangoId ?? null,
-        roles: roles ?? ['user'],
+        role: 'creator',
       })
-      .select('id, email, tag_mango_id, roles, created_at')
+      .select('id, email, name, tag_mango_id, role, created_at')
       .single();
 
-    if (error || !data) {
+    if (error) {
       throw new ConflictException(`Failed to create user: ${error?.message}`);
     }
 
@@ -57,15 +66,17 @@ export class AuthService {
     const token = this.generateToken({
       id: createdUser.id,
       email: createdUser.email,
-      roles: createdUser.roles,
+      role: createdUser.role,
+      creatorId: createdUser.creator_id,
     });
 
     return {
       user: {
         id: createdUser.id,
         email: createdUser.email,
+        name: createdUser.name,
         tagMangoId: createdUser.tag_mango_id,
-        roles: createdUser.roles,
+        role: createdUser.role,
         createdAt: createdUser.created_at,
       },
       accessToken: token,
@@ -89,6 +100,11 @@ export class AuthService {
 
     const user = data;
 
+    // Verify role is creator
+    if (user.role !== 'creator') {
+      throw new UnauthorizedException('Only creators can sign in');
+    }
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
@@ -100,15 +116,17 @@ export class AuthService {
     const token = this.generateToken({
       id: user.id,
       email: user.email,
-      roles: user.roles,
+      role: user.role,
+      creatorId: user.creator_id,
     });
 
     return {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         tagMangoId: user.tag_mango_id,
-        roles: user.roles,
+        role: user.role,
         createdAt: user.created_at,
       },
       accessToken: token,
@@ -118,12 +136,14 @@ export class AuthService {
   private generateToken(input: {
     id: string;
     email: string;
-    roles: ('user' | 'coach')[];
+    role: 'member' | 'creator';
+    creatorId: string;
   }) {
     const payload = {
       sub: input.id,
       email: input.email,
-      roles: input.roles,
+      role: input.role,
+      creatorId: input.creatorId,
     };
 
     return this.jwtService.sign(payload);
@@ -134,7 +154,7 @@ export class AuthService {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, tag_mango_id, roles, created_at')
+      .select('id, email, name, tag_mango_id, role, created_at')
       .eq('id', input.userId)
       .single();
 
@@ -147,8 +167,9 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
+      name: user.name,
       tagMangoId: user.tag_mango_id,
-      roles: user.roles,
+      role: user.role,
       createdAt: user.created_at,
     };
   }

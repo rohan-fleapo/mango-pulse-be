@@ -4,7 +4,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 
 interface RequestWithUser {
   user?: {
-    roles?: string[];
+    role?: string;
   };
 }
 
@@ -23,6 +23,8 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
-    return requiredRoles.some((role) => user?.roles?.includes(role));
+
+    // Check if user has the required role
+    return user?.role ? requiredRoles.includes(user.role) : false;
   }
 }

@@ -86,6 +86,9 @@ async function bootstrap(): Promise<void> {
   await app.listen(port);
 
   logger.log(`🚀 MangoPulse API is running on: http://localhost:${port}/api`);
+  if (nodeEnv === 'development') {
+    logger.log(`📚 Swagger documentation: http://localhost:${port}/api-docs`);
+  }
   logger.log(`📋 Auth endpoints: http://localhost:${port}/api/auth`);
   logger.log(`👥 Users endpoints: http://localhost:${port}/api/users`);
   logger.log(`📹 Zoom webhooks: http://localhost:${port}/api/zoom`);

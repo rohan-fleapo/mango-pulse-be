@@ -1,0 +1,1 @@
+ALTER TABLE users ALTER COLUMN tag_mango_id TYPE TEXT;

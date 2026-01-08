@@ -4,12 +4,8 @@ import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { UserDto } from '../users/dto';
 import { AnalyticsService } from './analytics.service';
-import {
-  ActivityStatsDto,
-  AnalyticsQueryDto,
-  EngagementStatsDto,
-  FeedbackStatsDto,
-} from './dto';
+import { AnalyticsQueryDto } from './dto';
+import { GetMeetingsStatsOutput } from './dto/meeting-stats.dto';
 
 @ApiTags('Analytics')
 @ApiBearerAuth('JWT-auth')
@@ -18,33 +14,13 @@ import {
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
-  @ApiResponse({ type: EngagementStatsDto })
-  @Get('engagement')
+  @ApiResponse({ type: GetMeetingsStatsOutput })
+  @Get('meetings-stats')
   @Roles('creator')
-  async getEngagementStats(
+  async getDashboardOverview(
     @CurrentUser() user: UserDto,
     @Query() query: AnalyticsQueryDto,
-  ): Promise<EngagementStatsDto> {
-    return this.analyticsService.getEngagementStats({ user, query });
-  }
-
-  @ApiResponse({ type: FeedbackStatsDto })
-  @Get('feedback')
-  @Roles('creator')
-  async getFeedbackStats(
-    @CurrentUser() user: UserDto,
-    @Query() query: AnalyticsQueryDto,
-  ): Promise<FeedbackStatsDto> {
-    return this.analyticsService.getFeedbackStats({ user, query });
-  }
-
-  @ApiResponse({ type: ActivityStatsDto })
-  @Get('activity')
-  @Roles('creator')
-  async getActivityStats(
-    @CurrentUser() user: UserDto,
-    @Query() query: AnalyticsQueryDto,
-  ): Promise<ActivityStatsDto> {
-    return this.analyticsService.getActivityStats({ user, query });
+  ): Promise<GetMeetingsStatsOutput> {
+    return this.analyticsService.getMeetingsStats({ user, query });
   }
 }

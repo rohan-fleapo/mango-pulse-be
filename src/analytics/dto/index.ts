@@ -1,2 +1,2 @@
 export * from './analytics-query.dto';
-export * from './analytics-response.dto';
+export * from './meeting-stats.dto';

@@ -10,4 +10,9 @@ export class GetMeetingsStatsOutput {
     description: 'Total number of meetings in the selected period',
   })
   totalMeetings: number;
+
+  @ApiProperty({
+    description: 'Average engagement rate (%) across meetings in the period',
+  })
+  avgEngagementRate: number;
 }

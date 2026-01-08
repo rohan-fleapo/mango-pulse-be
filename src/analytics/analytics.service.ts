@@ -32,12 +32,42 @@ export class AnalyticsService {
     if (query.endDate) {
       meetingsQuery = meetingsQuery.lte('start_date', query.endDate);
     }
-
     const { data: meetings } = await meetingsQuery;
+
+    let meetingEngagementsQuery = supabase
+      .from('meeting_engagements')
+      .select('id, meeting_id, attended, meetings!inner(creator_id)')
+      .eq('meetings.creator_id', user.id);
+
+    if (query.startDate) {
+      meetingEngagementsQuery = meetingEngagementsQuery.gte(
+        'meetings.start_date',
+        query.startDate,
+      );
+    }
+
+    if (query.endDate) {
+      meetingEngagementsQuery = meetingEngagementsQuery.lte(
+        'meetings.start_date',
+        query.endDate,
+      );
+    }
+    const { data: meetingEngagements } = await meetingEngagementsQuery;
+
+    let avgEngagementRate = 0;
+    if (meetingEngagements) {
+      const totalAttended = meetingEngagements.filter(
+        (me) => me.attended,
+      ).length;
+      if (meetingEngagements.length > 0) {
+        avgEngagementRate = (totalAttended / meetingEngagements.length) * 100;
+      }
+    }
 
     return {
       totalMembers: members?.length ?? 0,
       totalMeetings: meetings?.length ?? 0,
+      avgEngagementRate,
     };
   }
 }

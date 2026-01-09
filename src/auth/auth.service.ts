@@ -52,8 +52,11 @@ export class AuthService {
         password: hashedPassword,
         tag_mango_id: tagMangoId ?? null,
         role: 'creator',
+        is_onboarded: false,
       })
-      .select('id, email, name, tag_mango_id, role, created_at, phone')
+      .select(
+        'id, email, name, tag_mango_id, role, created_at, phone, is_onboarded',
+      )
       .single();
 
     if (error) {
@@ -68,6 +71,7 @@ export class AuthService {
       email: createdUser.email,
       role: createdUser.role,
       creatorId: createdUser.creator_id,
+      isOnboarded: createdUser.is_onboarded,
     });
 
     return {
@@ -78,6 +82,7 @@ export class AuthService {
         tagMangoId: createdUser.tag_mango_id,
         role: createdUser.role,
         phone: createdUser.phone,
+        isOnboarded: createdUser.is_onboarded,
         createdAt: createdUser.created_at,
       },
       accessToken: token,
@@ -119,6 +124,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       creatorId: user.creator_id,
+      isOnboarded: user.is_onboarded,
     });
 
     return {
@@ -129,6 +135,7 @@ export class AuthService {
         tagMangoId: user.tag_mango_id,
         role: user.role,
         phone: user.phone,
+        isOnboarded: user.is_onboarded,
         createdAt: user.created_at,
       },
       accessToken: token,
@@ -140,12 +147,14 @@ export class AuthService {
     email: string;
     role: Tables<'users'>['role'];
     creatorId: string;
+    isOnboarded: boolean | null;
   }) {
     const payload = {
       sub: input.id,
       email: input.email,
       role: input.role,
       creatorId: input.creatorId,
+      isOnboarded: input.isOnboarded,
     };
 
     return this.jwtService.sign(payload);
@@ -156,7 +165,9 @@ export class AuthService {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, name, tag_mango_id, role, created_at, phone')
+      .select(
+        'id, email, name, tag_mango_id, role, created_at, phone, is_onboarded',
+      )
       .eq('id', input.userId)
       .single();
 
@@ -173,6 +184,7 @@ export class AuthService {
       tagMangoId: user.tag_mango_id,
       role: user.role,
       phone: user.phone,
+      isOnboarded: user.is_onboarded,
       createdAt: user.created_at,
     };
   }

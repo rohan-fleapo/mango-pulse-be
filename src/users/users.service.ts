@@ -14,7 +14,7 @@ export class UsersService {
     const { data, error } = await supabase
       .from('users')
       .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone',
+        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
       )
       .order('created_at', { ascending: false });
 
@@ -31,6 +31,7 @@ export class UsersService {
       tagMangoId: user.tag_mango_id,
       role: user.role,
       phone: user.phone,
+      isOnboarded: user.is_onboarded,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     }));
@@ -42,7 +43,7 @@ export class UsersService {
     const { data, error } = await supabase
       .from('users')
       .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone',
+        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
       )
       .eq('id', input.id)
       .single();
@@ -60,6 +61,7 @@ export class UsersService {
       tagMangoId: user.tag_mango_id,
       role: user.role,
       phone: user.phone,
+      isOnboarded: user.is_onboarded,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     };
@@ -71,7 +73,7 @@ export class UsersService {
     const { data } = await supabase
       .from('users')
       .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone',
+        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
       )
       .eq('email', input.email)
       .single();
@@ -89,6 +91,7 @@ export class UsersService {
       tagMangoId: user.tag_mango_id,
       role: user.role,
       phone: user.phone,
+      isOnboarded: user.is_onboarded,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     };
@@ -100,7 +103,7 @@ export class UsersService {
     const { data } = await supabase
       .from('users')
       .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone',
+        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
       )
       .eq('tag_mango_id', input.tagMangoId)
       .single();
@@ -118,6 +121,7 @@ export class UsersService {
       tagMangoId: user.tag_mango_id,
       role: user.role,
       phone: user.phone,
+      isOnboarded: user.is_onboarded,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     };
@@ -148,7 +152,7 @@ export class UsersService {
       .update(updateData)
       .eq('id', input.id)
       .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone',
+        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
       )
       .single();
 
@@ -165,6 +169,7 @@ export class UsersService {
       tagMangoId: updatedUser.tag_mango_id,
       role: updatedUser.role,
       phone: updatedUser.phone,
+      isOnboarded: updatedUser.is_onboarded,
       createdAt: updatedUser.created_at,
       updatedAt: updatedUser.updated_at,
     };
@@ -191,7 +196,7 @@ export class UsersService {
     const { data, error } = await supabase
       .from('users')
       .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone',
+        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
       )
       .eq('role', 'creator')
       .order('created_at', { ascending: false });
@@ -209,6 +214,7 @@ export class UsersService {
       tagMangoId: user.tag_mango_id,
       role: user.role,
       phone: user.phone,
+      isOnboarded: user.is_onboarded,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     }));

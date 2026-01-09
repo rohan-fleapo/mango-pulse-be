@@ -10,6 +10,7 @@ import {
   CreateMeetingOutput,
   DeleteMeetingInput,
   DeleteMeetingOutput,
+  GetMeetingDetailOutput,
   GetMeetingsInput,
   GetMeetingsOutput,
   MeetingRow,
@@ -321,7 +322,7 @@ export class MeetingsService {
     };
   }
 
-  async getMeeting(id: string) {
+  async getMeeting(id: string): Promise<GetMeetingDetailOutput> {
     const { data: meeting, error } = await this.supabaseAdmin
       .from('meetings')
       .select('*')
@@ -331,12 +332,6 @@ export class MeetingsService {
     if (error || !meeting) {
       throw new NotFoundException(`Meeting with ID ${id} not found`);
     }
-
-    // Get engagements
-    const { data: engagements } = await this.supabaseAdmin
-      .from('meeting_engagements')
-      .select('*')
-      .eq('meeting_id', id);
 
     const { count: countCount } = await this.supabaseAdmin
       .from('meeting_activities')
@@ -355,11 +350,6 @@ export class MeetingsService {
       date: meeting.start_date,
       duration: duration || 0,
       count: countCount || 0,
-      attendance: [], // Will be populated by analytics API for chart data? Or should we populate it here?
-      // Frontend expects: { id, title, date, duration, count, attendance: [] }
-      // But attendance array in frontend mock has duration/joinedAt etc.
-      // The new analytics API will provide detailed attendance.
-      // For now, let's keep it simple here.
     };
   }
 

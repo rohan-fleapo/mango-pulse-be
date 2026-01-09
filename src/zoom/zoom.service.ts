@@ -50,14 +50,13 @@ export class ZoomService {
           .update(payload?.plainToken)
           .digest('hex');
 
-
-          console.log({
+        console.log({
           message: {
             plainToken: payload.plainToken,
             encryptedToken: hashForValidate,
           },
           status: 200,
-        })
+        });
 
         return {
           message: {
@@ -715,7 +714,7 @@ export class ZoomService {
 
       // Create message string: timestamp:rawBody
       // Use the original timestamp string as received (not converted) for the message
-      const message = `${timestamp}:${rawBody}`;
+      const message = `v0:${timestamp}:${rawBody}`;
 
       // Compute HMAC SHA-256 hash
       const crypto = await import('crypto');

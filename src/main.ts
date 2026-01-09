@@ -9,7 +9,10 @@ import { AppModule } from './app.module';
 import { swagger } from './libs';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
   const logger = new Logger('Bootstrap');
   const configService = app.get(ConfigService);
 

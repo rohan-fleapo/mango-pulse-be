@@ -234,10 +234,13 @@ export type Database = {
           email: string
           id: string
           is_onboarded: boolean | null
+          is_pro: boolean | null
           name: string
           password: string
           phone: string | null
+          razorpay_customer_id: string | null
           role: Database["public"]["Enums"]["user_role"]
+          subscription_id: string | null
           tag_mango_id: string | null
           updated_at: string | null
         }
@@ -248,10 +251,13 @@ export type Database = {
           email: string
           id?: string
           is_onboarded?: boolean | null
+          is_pro?: boolean | null
           name: string
           password: string
           phone?: string | null
+          razorpay_customer_id?: string | null
           role: Database["public"]["Enums"]["user_role"]
+          subscription_id?: string | null
           tag_mango_id?: string | null
           updated_at?: string | null
         }
@@ -262,10 +268,13 @@ export type Database = {
           email?: string
           id?: string
           is_onboarded?: boolean | null
+          is_pro?: boolean | null
           name?: string
           password?: string
           phone?: string | null
+          razorpay_customer_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          subscription_id?: string | null
           tag_mango_id?: string | null
           updated_at?: string | null
         }

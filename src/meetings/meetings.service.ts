@@ -371,15 +371,45 @@ export class MeetingsService {
       throw new Error(`Failed to fetch meetings: ${error.message}`);
     }
 
-    const meetings = (data ?? []).map((meeting: MeetingRow) => ({
-      id: meeting.id,
-      topic: meeting.topic || 'Untitled Meeting',
-      link: meeting.link,
-      startTime: meeting.start_date,
-      scheduledEndDate: meeting.scheduled_end_date,
-      recordingLink: meeting.recording_link,
-      recordingPassword: meeting.recording_password || undefined,
-    }));
+    const meetingIds = (data ?? []).map((meeting: MeetingRow) => meeting.id);
+
+    const { data: activities } = await this.supabaseAdmin
+      .from('meeting_activities')
+      .select('meeting_id, user_id')
+      .in('meeting_id', meetingIds);
+
+    const attendeeCountByMeeting = new Map<string, Set<string>>();
+    activities?.forEach((activity) => {
+      if (!attendeeCountByMeeting.has(activity.meeting_id)) {
+        attendeeCountByMeeting.set(activity.meeting_id, new Set());
+      }
+      attendeeCountByMeeting.get(activity.meeting_id)?.add(activity.user_id);
+    });
+
+    const meetings = (data ?? []).map((meeting: MeetingRow) => {
+      const start = new Date(meeting.start_date);
+      const end = meeting.end_date
+        ? new Date(meeting.end_date)
+        : new Date(meeting.scheduled_end_date);
+
+      const duration = Math.round(
+        (end.getTime() - start.getTime()) / (1000 * 60),
+      );
+
+      const attendeesCount = attendeeCountByMeeting.get(meeting.id)?.size ?? 0;
+
+      return {
+        id: meeting.id,
+        topic: meeting.topic || 'Untitled Meeting',
+        link: meeting.link,
+        startTime: meeting.start_date,
+        scheduledEndDate: meeting.scheduled_end_date,
+        recordingLink: meeting.recording_link,
+        recordingPassword: meeting.recording_password || undefined,
+        attendeesCount,
+        duration,
+      };
+    });
 
     return { meetings };
   }

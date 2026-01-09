@@ -330,20 +330,40 @@ export class WhatsAppService {
   }
 
   /**
-   * Handle interactive button replies - update meeting engagement interest
+   * Handle interactive button replies - update meeting engagement interest or next meeting interest
    */
   private async handleInteractiveReply(from: string, buttonId: string) {
     try {
-      // Parse button ID format: "meetingid:userid:ATTEND_REPLY_YES"
+      // Parse button ID format: "meetingid:userid:REPLY_TYPE"
+      // Can be: "meetingid:userid:ATTEND_REPLY_YES" or "meeting_id:user_id:NEXT_ATTEND_REPLY_YES"
       const parts = buttonId.split(':');
       if (parts.length !== 3) {
         this.logger.warn(`Invalid button ID format: ${buttonId}`);
         return;
       }
 
-      const [meetingId, userId, replyType] = parts;
+      const [meetingIdOrUuid, userId, replyType] = parts;
 
-      // Check if reply type is valid
+      // Check if this is a rating reply
+      if (
+        replyType.includes('RATING_1') ||
+        replyType.includes('RATING_2') ||
+        replyType.includes('RATING_3')
+      ) {
+        await this.handleRatingReply(meetingIdOrUuid, userId, replyType);
+        return;
+      }
+
+      // Check if this is a "Next Event" reply
+      if (
+        replyType.includes('NEXT_ATTEND_REPLY_YES') ||
+        replyType.includes('NEXT_ATTEND_REPLY_NO')
+      ) {
+        await this.handleNextEventReply(meetingIdOrUuid, userId, replyType);
+        return;
+      }
+
+      // Handle attendance replies (existing logic)
       if (
         !replyType.includes('ATTEND_REPLY_YES') &&
         !replyType.includes('ATTEND_REPLY_NO') &&
@@ -361,15 +381,15 @@ export class WhatsAppService {
         interest = 'maybe';
       }
 
-      // Find meeting by meeting_id
+      // Find meeting by meeting_id (Zoom meeting ID)
       const { data: meeting, error: meetingError } = await this.supabaseAdmin
         .from('meetings')
         .select('id')
-        .eq('meeting_id', meetingId)
+        .eq('meeting_id', meetingIdOrUuid)
         .single();
 
       if (meetingError || !meeting) {
-        this.logger.warn(`Meeting with meeting_id ${meetingId} not found`);
+        this.logger.warn(`Meeting with meeting_id ${meetingIdOrUuid} not found`);
         return;
       }
 
@@ -410,9 +430,167 @@ export class WhatsAppService {
     }
   }
 
-  /**
-   * Send a text message
-   */
+  private async handleRatingReply(
+    meetingId: string,
+    userId: string,
+    replyType: string,
+  ) {
+    try {
+      // Extract rating from reply type (RATING_1 = 1, RATING_2 = 2, RATING_3 = 3)
+      let rating: number;
+      if (replyType.includes('RATING_1')) {
+        rating = 1;
+      } else if (replyType.includes('RATING_2')) {
+        rating = 2;
+      } else if (replyType.includes('RATING_3')) {
+        rating = 3;
+      } else {
+        this.logger.warn(`Invalid rating reply type: ${replyType}`);
+        return;
+      }
+
+      // meetingId here is the database UUID (not Zoom meeting_id)
+      this.logger.log(
+        `Processing rating reply: user ${userId}, meeting ${meetingId}, rating: ${rating}`,
+      );
+
+      // Check if feedback record exists
+      const { data: existingFeedback, error: checkError } =
+        await this.supabaseAdmin
+          .from('meeting_feedbacks')
+          .select('id')
+          .eq('meeting_id', meetingId)
+          .eq('user_id', userId)
+          .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is expected if no record exists
+        this.logger.error(
+          `Error checking existing feedback: ${checkError.message}`,
+        );
+        return;
+      }
+
+      if (existingFeedback) {
+        // Update existing record
+        const { error: updateError } = await this.supabaseAdmin
+          .from('meeting_feedbacks')
+          .update({ rating: rating })
+          .eq('id', existingFeedback.id);
+
+        if (updateError) {
+          this.logger.error(
+            `Failed to update meeting feedback rating: ${updateError.message}`,
+          );
+        } else {
+          this.logger.log(
+            `Updated meeting feedback rating for user ${userId}, meeting ${meetingId} to ${rating}`,
+          );
+        }
+      } else {
+        // Insert new record
+        const { error: insertError } = await this.supabaseAdmin
+          .from('meeting_feedbacks')
+          .insert({
+            meeting_id: meetingId,
+            user_id: userId,
+            rating: rating,
+          });
+
+        if (insertError) {
+          this.logger.error(
+            `Failed to insert meeting feedback rating: ${insertError.message}`,
+          );
+        } else {
+          this.logger.log(
+            `Created meeting feedback for user ${userId}, meeting ${meetingId} with rating: ${rating}`,
+          );
+        }
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `Error handling rating reply: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  private async handleNextEventReply(
+    meetingId: string,
+    userId: string,
+    replyType: string,
+  ) {
+    try {
+      // meetingId here is the database UUID (not Zoom meeting_id)
+      // Determine interest value based on reply
+      const nextMeetingInterest: 'yes' | 'no' | 'maybe' | 'no-response' =
+        replyType.includes('NEXT_ATTEND_REPLY_YES') ? 'yes' : 'no';
+
+      this.logger.log(
+        `Processing next event reply: user ${userId}, meeting ${meetingId}, interest: ${nextMeetingInterest}`,
+      );
+
+      // Check if feedback record exists
+      const { data: existingFeedback, error: checkError } =
+        await this.supabaseAdmin
+          .from('meeting_feedbacks')
+          .select('id')
+          .eq('meeting_id', meetingId)
+          .eq('user_id', userId)
+          .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is expected if no record exists
+        this.logger.error(
+          `Error checking existing feedback: ${checkError.message}`,
+        );
+        return;
+      }
+
+      if (existingFeedback) {
+        // Update existing record
+        const { error: updateError } = await this.supabaseAdmin
+          .from('meeting_feedbacks')
+          .update({ next_meeting_interested: nextMeetingInterest })
+          .eq('id', existingFeedback.id);
+
+        if (updateError) {
+          this.logger.error(
+            `Failed to update meeting feedback: ${updateError.message}`,
+          );
+        } else {
+          this.logger.log(
+            `Updated meeting feedback for user ${userId}, meeting ${meetingId} to ${nextMeetingInterest}`,
+          );
+        }
+      } else {
+        // Insert new record
+        const { error: insertError } = await this.supabaseAdmin
+          .from('meeting_feedbacks')
+          .insert({
+            meeting_id: meetingId,
+            user_id: userId,
+            next_meeting_interested: nextMeetingInterest,
+          });
+
+        if (insertError) {
+          this.logger.error(
+            `Failed to insert meeting feedback: ${insertError.message}`,
+          );
+        } else {
+          this.logger.log(
+            `Created meeting feedback for user ${userId}, meeting ${meetingId} with interest: ${nextMeetingInterest}`,
+          );
+        }
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `Error handling next event reply: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
   private async sendTextMessage(to: string, text: string): Promise<void> {
     try {
       const message = {
@@ -435,9 +613,6 @@ export class WhatsAppService {
     }
   }
 
-  /**
-   * Send interactive message with attendance buttons
-   */
   private async sendAttendanceInteractiveMessage(
     to: string,
     buttonIdPrefix: string,

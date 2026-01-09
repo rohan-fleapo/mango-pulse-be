@@ -33,6 +33,9 @@ export class UsersService {
       isOnboarded: user.is_onboarded,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
+      isPro: user.is_pro || false,
+      subscriptionId: user.subscription_id,
+      razorpayCustomerId: user.razorpay_customer_id,
     };
   }
 
@@ -52,6 +55,15 @@ export class UsersService {
     }
     if (input.data.isOnboarded !== undefined) {
       updateData.is_onboarded = input.data.isOnboarded;
+    }
+    if (input.data.isPro !== undefined) {
+      updateData.is_pro = input.data.isPro;
+    }
+    if (input.data.subscriptionId !== undefined) {
+      updateData.subscription_id = input.data.subscriptionId;
+    }
+    if (input.data.razorpayCustomerId !== undefined) {
+      updateData.razorpay_customer_id = input.data.razorpayCustomerId;
     }
 
     const { error } = await this.supabase

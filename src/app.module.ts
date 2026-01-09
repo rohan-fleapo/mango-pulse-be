@@ -11,6 +11,7 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { UsersModule } from './users/users.module';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { ZoomModule } from './zoom/zoom.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -29,7 +30,9 @@ import { ZoomModule } from './zoom/zoom.module';
     ZoomModule,
     MeetingsModule,
     AnalyticsModule,
+    AnalyticsModule,
     WhatsAppModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

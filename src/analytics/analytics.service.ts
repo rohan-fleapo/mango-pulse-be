@@ -77,41 +77,7 @@ export class AnalyticsService {
       }
     }
 
-    const durationBreakdown = {
-      '0-15': 0,
-      '15-30': 0,
-      '30-45': 0,
-      '45-60': 0,
-      '60+': 0,
-    };
-
-    if (meetings) {
-      meetings.forEach((meeting) => {
-        if (
-          meeting.start_date &&
-          (meeting.end_date || meeting.scheduled_end_date)
-        ) {
-          const startTime = new Date(meeting.start_date).getTime();
-          const endTime = new Date(
-            meeting.end_date || meeting.scheduled_end_date,
-          ).getTime();
-          const durationMinutes = (endTime - startTime) / (1000 * 60);
-
-          if (durationMinutes <= 15) {
-            durationBreakdown['0-15']++;
-          } else if (durationMinutes <= 30) {
-            durationBreakdown['15-30']++;
-          } else if (durationMinutes <= 45) {
-            durationBreakdown['30-45']++;
-          } else if (durationMinutes <= 60) {
-            durationBreakdown['45-60']++;
-          } else {
-            durationBreakdown['60+']++;
-          }
-        }
-      });
-    }
-
+    const durationBreakdown = this.getMeetingsDurationBreakdown(meetings);
     const timeline = await this.getMeetingsTimeline(user);
 
     return {
@@ -121,6 +87,43 @@ export class AnalyticsService {
       durationBreakdown,
       timeline,
     };
+  }
+
+  private getMeetingsDurationBreakdown(meetings) {
+    const breakdown = {
+      '0-15': 0,
+      '15-30': 0,
+      '30-45': 0,
+      '45-60': 0,
+      '60+': 0,
+    };
+
+    meetings?.forEach((meeting) => {
+      if (
+        meeting.start_date &&
+        (meeting.end_date || meeting.scheduled_end_date)
+      ) {
+        const startTime = new Date(meeting.start_date).getTime();
+        const endTime = new Date(
+          meeting.end_date || meeting.scheduled_end_date,
+        ).getTime();
+        const durationMinutes = (endTime - startTime) / (1000 * 60);
+
+        if (durationMinutes <= 15) {
+          breakdown['0-15']++;
+        } else if (durationMinutes <= 30) {
+          breakdown['15-30']++;
+        } else if (durationMinutes <= 45) {
+          breakdown['30-45']++;
+        } else if (durationMinutes <= 60) {
+          breakdown['45-60']++;
+        } else {
+          breakdown['60+']++;
+        }
+      }
+    });
+
+    return breakdown;
   }
 
   private async getMeetingsTimeline(

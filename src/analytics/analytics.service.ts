@@ -11,6 +11,7 @@ import {
   AiInsightsOutput,
   AnalyticsQueryDto,
   MeetingDetailsAnalyticsOutput,
+  MeetViewPercentageGraphOutput,
 } from './dto';
 import {
   GetMeetingsStatsOutput,
@@ -414,7 +415,7 @@ export class AnalyticsService {
       const actualJoinTime = Date.parse(a.joining_time);
       if (
         !joinTimes.has(a.user_id) ||
-        actualJoinTime < joinTimes.get(a.user_id)!
+        actualJoinTime < joinTimes.get(a.user_id)
       ) {
         joinTimes.set(a.user_id, actualJoinTime);
       }
@@ -489,5 +490,38 @@ export class AnalyticsService {
       participantDurations: participantDurations.slice(0, 10), // Top 10
       joinTimeDistribution,
     };
+  }
+
+  async getMeetViewPercentageGraph(input: {
+    meetingId: string;
+    user: UserDto;
+  }): Promise<MeetViewPercentageGraphOutput[]> {
+    const supabase = this.supabaseService.getAdminClient();
+
+    const { data: meeting } = await supabase
+      .from('meetings')
+      .select('creator_id')
+      .eq('id', input.meetingId)
+      .single();
+
+    if (!meeting) {
+      throw new NotFoundException('Meeting not found');
+    }
+
+    if (meeting.creator_id !== input.user.id) {
+      throw new ForbiddenException(
+        'You are not authorized to view analytics for this meeting',
+      );
+    }
+
+    const { data, error } = await supabase.rpc('get_meet_view_percentage', {
+      p_meeting_id: input.meetingId,
+    });
+
+    if (error) {
+      throw new Error(`Failed to fetch view percentage: ${error.message}`);
+    }
+
+    return data as MeetViewPercentageGraphOutput[];
   }
 }

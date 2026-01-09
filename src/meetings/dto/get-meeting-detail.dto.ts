@@ -30,11 +30,4 @@ export class GetMeetingDetailOutput {
     example: 10,
   })
   count: number;
-
-  @ApiProperty({
-    description: 'Attendance list (simplified)',
-    example: [],
-    isArray: true,
-  })
-  attendance: any[];
 }

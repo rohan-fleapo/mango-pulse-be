@@ -6,8 +6,10 @@ import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards';
 import { MeetingsModule } from './meetings/meetings.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { UsersModule } from './users/users.module';
+import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { ZoomModule } from './zoom/zoom.module';
 
 @Module({
@@ -19,12 +21,15 @@ import { ZoomModule } from './zoom/zoom.module';
     }),
     // Supabase module (global)
     SupabaseModule,
+    // Scheduler module (for cron jobs)
+    SchedulerModule,
     // Feature modules
     AuthModule,
     UsersModule,
     ZoomModule,
     MeetingsModule,
     AnalyticsModule,
+    WhatsAppModule,
   ],
   controllers: [AppController],
   providers: [

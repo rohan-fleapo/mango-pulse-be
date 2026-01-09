@@ -5,17 +5,21 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  AWS_REGION: ap-south-2 # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: mango-pulse-repo # set this to your Amazon ECR repository name
-  ECS_SERVICE: mango-pulse-service-v2 # set this to your Amazon ECS service name
-  ECS_CLUSTER: mango-pulse-cluster # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION:
-    .aws/task-def.json # set this to the path to your Amazon ECS task definition
-    # file, e.g. .aws/task-definition.json
-  CONTAINER_NAME:
-    mango-pulse-repo # set this to the name of the container in the
-    # containerDefinitions section of your task definition
+  AWS_REGION: ap-south-2
+  ECR_REPOSITORY: mango-pulse-repo
+  ECS_SERVICE: mango-pulse-service-v2
+  ECS_CLUSTER: mango-pulse-cluster
+  ECS_TASK_DEFINITION: ./ecs-task-defination.json
+  CONTAINER_NAME: mango-pulse-repo
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
@@ -30,50 +34,47 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-region: ${{ env.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          # Build a docker container and
-          # push it to ECR so that it can
-          # be deployed to ECS.
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+      - name: Set up Docker Buildkit
+        uses: docker/setup-buildx-action@v2
+        with:
+          buildkitd-flags: --debug
 
-      - name: Parse environment variables
-        id: parse-env
+      - name: Copy task defination
+        env:
+          AWS_TASK_DEFINATION: ${{ secrets.AWS_TASK_DEFINATION_PROD }}
         run: |
-          # Parse the JSON array of environment variables and convert to KEY=VALUE format
-          ENV_VARS=$(echo '${{ secrets.ENV_VARS }}' | jq -r '.[] | "\(.key)=\(.value)"')
-          # Use delimiter for multiline output
-          echo "env_vars<<EOF" >> $GITHUB_OUTPUT
-          echo "$ENV_VARS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo $AWS_TASK_DEFINATION >> ecs-task-defination.json
+
+      - name: Docker Build, Tag and Push to ECR
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: ${{ env.ECS_TASK_DEFINITION }}
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image }}
-          environment-variables: ${{ steps.parse-env.outputs.env_vars }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+          task-definition: ${{ steps.task-def.outputs.task-definition }}

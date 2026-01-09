@@ -10,6 +10,7 @@ import {
   CreateMeetingOutput,
   DeleteMeetingInput,
   DeleteMeetingOutput,
+  GetMeetingDetailOutput,
   GetMeetingsInput,
   GetMeetingsOutput,
   MeetingRow,
@@ -64,6 +65,9 @@ export class MeetingsService {
         join_before_host: false,
         mute_upon_entry: true,
         auto_recording: 'cloud',
+        approval_type: 0,
+        registration_type: 1,
+        meeting_authentication: true,
       },
     };
 
@@ -320,7 +324,7 @@ export class MeetingsService {
     };
   }
 
-  async getMeeting(id: string) {
+  async getMeeting(id: string): Promise<GetMeetingDetailOutput> {
     const { data: meeting, error } = await this.supabaseAdmin
       .from('meetings')
       .select('*')
@@ -330,12 +334,6 @@ export class MeetingsService {
     if (error || !meeting) {
       throw new NotFoundException(`Meeting with ID ${id} not found`);
     }
-
-    // Get engagements
-    const { data: engagements } = await this.supabaseAdmin
-      .from('meeting_engagements')
-      .select('*')
-      .eq('meeting_id', id);
 
     const { count: countCount } = await this.supabaseAdmin
       .from('meeting_activities')
@@ -354,11 +352,6 @@ export class MeetingsService {
       date: meeting.start_date,
       duration: duration || 0,
       count: countCount || 0,
-      attendance: [], // Will be populated by analytics API for chart data? Or should we populate it here?
-      // Frontend expects: { id, title, date, duration, count, attendance: [] }
-      // But attendance array in frontend mock has duration/joinedAt etc.
-      // The new analytics API will provide detailed attendance.
-      // For now, let's keep it simple here.
     };
   }
 
@@ -380,15 +373,45 @@ export class MeetingsService {
       throw new Error(`Failed to fetch meetings: ${error.message}`);
     }
 
-    const meetings = (data ?? []).map((meeting: MeetingRow) => ({
-      id: meeting.id,
-      topic: meeting.topic || 'Untitled Meeting',
-      link: meeting.link,
-      startTime: meeting.start_date,
-      scheduledEndDate: meeting.scheduled_end_date,
-      recordingLink: meeting.recording_link,
-      recordingPassword: meeting.recording_password || undefined,
-    }));
+    const meetingIds = (data ?? []).map((meeting: MeetingRow) => meeting.id);
+
+    const { data: activities } = await this.supabaseAdmin
+      .from('meeting_activities')
+      .select('meeting_id, user_id')
+      .in('meeting_id', meetingIds);
+
+    const attendeeCountByMeeting = new Map<string, Set<string>>();
+    activities?.forEach((activity) => {
+      if (!attendeeCountByMeeting.has(activity.meeting_id)) {
+        attendeeCountByMeeting.set(activity.meeting_id, new Set());
+      }
+      attendeeCountByMeeting.get(activity.meeting_id)?.add(activity.user_id);
+    });
+
+    const meetings = (data ?? []).map((meeting: MeetingRow) => {
+      const start = new Date(meeting.start_date);
+      const end = meeting.end_date
+        ? new Date(meeting.end_date)
+        : new Date(meeting.scheduled_end_date);
+
+      const duration = Math.round(
+        (end.getTime() - start.getTime()) / (1000 * 60),
+      );
+
+      const attendeesCount = attendeeCountByMeeting.get(meeting.id)?.size ?? 0;
+
+      return {
+        id: meeting.id,
+        topic: meeting.topic || 'Untitled Meeting',
+        link: meeting.link,
+        startTime: meeting.start_date,
+        scheduledEndDate: meeting.scheduled_end_date,
+        recordingLink: meeting.recording_link,
+        recordingPassword: meeting.recording_password || undefined,
+        attendeesCount,
+        duration,
+      };
+    });
 
     return { meetings };
   }

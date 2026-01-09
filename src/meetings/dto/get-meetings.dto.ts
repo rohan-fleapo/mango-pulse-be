@@ -61,6 +61,18 @@ export class MeetingItemDto {
     example: 'abc123',
   })
   recordingPassword?: string;
+
+  @ApiProperty({
+    description: 'Number of attendees in the meeting',
+    example: 10,
+  })
+  attendeesCount: number;
+
+  @ApiProperty({
+    description: 'Duration of the meeting in minutes',
+    example: 60,
+  })
+  duration: number;
 }
 
 export class GetMeetingsOutput {

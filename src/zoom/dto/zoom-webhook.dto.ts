@@ -59,7 +59,7 @@ class ZoomParticipantPayload {
 class ZoomMeetingObject {
   // Allow string or number for ID as Zoom can send either
   @ApiProperty({ example: '123456789' })
-  id: string | number;
+  id: number;
 
   @ApiProperty({ example: 'abc-def-ghi' })
   uuid: string;

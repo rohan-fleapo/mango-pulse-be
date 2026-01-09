@@ -45,4 +45,18 @@ export class UpdateUserDto {
   })
   @IsOptional()
   isOnboarded?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  isPro?: boolean;
+
+  @ApiPropertyOptional({ example: 'sub_123456' })
+  @IsOptional()
+  @IsString()
+  subscriptionId?: string;
+
+  @ApiPropertyOptional({ example: 'cust_123456' })
+  @IsOptional()
+  @IsString()
+  razorpayCustomerId?: string;
 }

@@ -23,7 +23,7 @@ export class AnalyticsController {
   @ApiResponse({ type: GetMeetingsStatsOutput })
   @Get('meetings-stats')
   @Roles('creator')
-  async getDashboardOverview(
+  async getMeetingsStats(
     @CurrentUser() user: UserDto,
     @Query() query: AnalyticsQueryDto,
   ): Promise<GetMeetingsStatsOutput> {
@@ -33,7 +33,7 @@ export class AnalyticsController {
   @ApiResponse({ type: AiInsightsOutput })
   @Get('ai-insights')
   @Roles('creator')
-  async getMeetingsAiInsights(
+  async getAiInsights(
     @CurrentUser() user: UserDto,
     @Query() query: AnalyticsQueryDto,
   ): Promise<AiInsightsOutput> {

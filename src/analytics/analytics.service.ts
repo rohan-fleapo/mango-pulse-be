@@ -34,8 +34,7 @@ export class AnalyticsService {
     const { data: members } = await supabase
       .from('users')
       .select('creator_id')
-      .eq('creator_id', user.id)
-      .eq('role', 'member');
+      .eq('creator_id', user.id);
 
     let meetingsQuery = supabase
       .from('meetings')

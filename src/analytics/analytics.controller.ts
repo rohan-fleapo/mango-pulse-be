@@ -1,10 +1,14 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { UserDto } from '../users/dto';
 import { AnalyticsService } from './analytics.service';
-import { AiInsightsOutput, AnalyticsQueryDto } from './dto';
+import {
+  ActivityAnalyticsOutput,
+  AiInsightsOutput,
+  AnalyticsQueryDto,
+} from './dto';
 import { GetMeetingsStatsOutput } from './dto/meeting-stats.dto';
 
 @ApiTags('Analytics')
@@ -32,5 +36,15 @@ export class AnalyticsController {
     @Query() query: AnalyticsQueryDto,
   ): Promise<AiInsightsOutput> {
     return this.analyticsService.getAiInsights({ user, query });
+  }
+
+  @ApiResponse({ type: ActivityAnalyticsOutput })
+  @Get('meeting/:meetingId')
+  @Roles('creator')
+  async getActivityAnalytics(
+    @Param('meetingId') meetingId: string,
+    @CurrentUser() user: UserDto,
+  ): Promise<ActivityAnalyticsOutput> {
+    return this.analyticsService.getActivityAnalytics({ meetingId, user });
   }
 }

@@ -13,6 +13,7 @@ import {
 } from './dto';
 import {
   GetMeetingsStatsOutput,
+  MeetingDurationBreakdown,
   MeetingTimelineItem,
 } from './dto/meeting-stats.dto';
 import { MEETING_INSIGHTS_PROMPT } from './prompts/meeting-insights.prompt';
@@ -180,6 +181,16 @@ export class AnalyticsService {
     return aiInsights;
   }
 
+  private formatDurationBreakdown(breakdown: MeetingDurationBreakdown) {
+    return Object.entries(breakdown)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+  }
+
+  private formatTimeline(timeline: MeetingTimelineItem[]) {
+    return timeline.map((item) => `${item.date}: ${item.attendees}`).join(', ');
+  }
+
   private async generateAiInsights(
     stats: GetMeetingsStatsOutput,
   ): Promise<AiInsightsOutput> {
@@ -187,14 +198,19 @@ export class AnalyticsService {
       apiKey: process.env.OPENROUTER_API_KEY,
     });
 
+    const durationBreakdownText = this.formatDurationBreakdown(
+      stats.durationBreakdown,
+    );
+    const timelineText = this.formatTimeline(stats.timeline);
+
     const prompt = MEETING_INSIGHTS_PROMPT.replace(
       '{{totalMembers}}',
       stats.totalMembers.toString(),
     )
       .replace('{{totalMeetings}}', stats.totalMeetings.toString())
       .replace('{{avgEngagementRate}}', stats.avgEngagementRate.toFixed(2))
-      .replace('{{durationBreakdown}}', JSON.stringify(stats.durationBreakdown))
-      .replace('{{timeline}}', JSON.stringify(stats.timeline));
+      .replace('{{durationBreakdown}}', durationBreakdownText)
+      .replace('{{timeline}}', timelineText);
 
     const stream = await openrouter.chat.send({
       model: 'mistralai/devstral-2512:free',

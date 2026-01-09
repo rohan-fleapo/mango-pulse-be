@@ -4,8 +4,8 @@ Given the following data:
 - Total Members: {{totalMembers}}
 - Total Meetings: {{totalMeetings}}
 - Average Engagement Rate: {{avgEngagementRate}}%
-- Meeting Duration Breakdown: {{durationBreakdown}}
-- Meeting Timeline: {{timeline}}
+- Meeting Duration Breakdown (minutes: count): {{durationBreakdown}}
+- Meeting Timeline (date: number of meetings): {{timeline}}
 
 IMPORTANT: Return ONLY valid JSON. Do not wrap the response in markdown code blocks or add any other text. Return the raw JSON object directly.
 
@@ -25,4 +25,19 @@ Generate a JSON response with exactly this structure:
   ]
 }
 
-Make the insights data-driven and specific based on the numbers provided. Keep each point concise and actionable. Remember: return ONLY the JSON object, no markdown, no code blocks, no additional text.`;
+STYLE REQUIREMENTS:
+- Keep each point to ONE SHORT SENTENCE (max 12 words)
+- Use specific numbers from the data
+- Be direct and factual, not descriptive
+- Format: "Action/fact: specific number/detail"
+
+GOOD EXAMPLES:
+✓ "Your community shows an average engagement rate of 78%"
+✓ "Schedule meetings on Wed for best attendance"
+✓ "Keep meetings under 30 minutes to maintain engagement"
+
+BAD EXAMPLES:
+✗ "Meeting duration patterns show a preference for shorter sessions, with most meetings lasting under 30 minutes, indicating efficient use of time"
+✗ "Your community demonstrates strong engagement patterns"
+
+Remember: return ONLY the JSON object, no markdown, no code blocks, no additional text.`;

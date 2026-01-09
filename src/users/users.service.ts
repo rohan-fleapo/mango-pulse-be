@@ -1,15 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import * as crypto from 'crypto';
 import { SupabaseService } from '../supabase/supabase.service';
 import { Database, Tables } from '../types/supabase';
-import {
-  CreateUserDto,
-  GetUsersByCreatorDto,
-  GetUsersResponseDto,
-  ImportUsersDto,
-  UpdateUserDto,
-} from './dto';
+import { CreateUserDto, ImportUsersDto, UpdateUserDto } from './dto';
 
 @Injectable()
 export class UsersService {
@@ -36,171 +30,7 @@ export class UsersService {
     };
   }
 
-  async findAll() {
-    const { data, error } = await this.supabase
-      .from('users')
-      .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
-      )
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(`Failed to fetch users: ${error.message}`);
-    }
-
-    const users = (data ?? []) as Tables<'users'>[];
-
-    return users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      tagMangoId: user.tag_mango_id,
-      role: user.role,
-      phone: user.phone,
-      isOnboarded: user.is_onboarded,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    }));
-  }
-
-  async findOne(input: { id: string }) {
-    const { data, error } = await this.supabase
-      .from('users')
-      .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
-      )
-      .eq('id', input.id)
-      .single();
-
-    if (error || !data) {
-      throw new NotFoundException(`User with ID ${input.id} not found`);
-    }
-
-    const user = data as Tables<'users'>;
-
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      tagMangoId: user.tag_mango_id,
-      role: user.role,
-      phone: user.phone,
-      isOnboarded: user.is_onboarded,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    };
-  }
-
-  async findByEmail(input: { email: string }) {
-    const { data } = await this.supabase
-      .from('users')
-      .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
-      )
-      .eq('email', input.email)
-      .single();
-
-    if (!data) {
-      return null;
-    }
-
-    const user = data as Tables<'users'>;
-
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      tagMangoId: user.tag_mango_id,
-      role: user.role,
-      phone: user.phone,
-      isOnboarded: user.is_onboarded,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    };
-  }
-
-  async findByTagMangoId(input: { tagMangoId: string }) {
-    const { data } = await this.supabase
-      .from('users')
-      .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
-      )
-      .eq('tag_mango_id', input.tagMangoId)
-      .single();
-
-    if (!data) {
-      return null;
-    }
-
-    const user = data as Tables<'users'>;
-
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      tagMangoId: user.tag_mango_id,
-      role: user.role,
-      phone: user.phone,
-      isOnboarded: user.is_onboarded,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    };
-  }
-
-  async getUsersByCreatorId(input: {
-    creatorId: string;
-    filters: GetUsersByCreatorDto;
-  }): Promise<GetUsersResponseDto> {
-    const { page = 1, limit = 10, name, email } = input.filters;
-
-    // Calculate offset for pagination
-    const offset = (page - 1) * limit;
-
-    // Build the query
-    let query = this.supabase
-      .from('users')
-      .select(
-        'id, email, name, tag_mango_id, role, created_at, updated_at, phone, is_onboarded',
-        { count: 'exact' },
-      )
-      .eq('creator_id', input.creatorId);
-
-    // Apply filters if provided
-    if (name) {
-      query = query.ilike('name', `%${name}%`);
-    }
-
-    if (email) {
-      query = query.ilike('email', `%${email}%`);
-    }
-
-    // Apply pagination and ordering
-    query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch users: ${error.message}`);
-    }
-
-    const users = (data ?? []) as Tables<'users'>[];
-    const total = count ?? 0;
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      users: users.map((user) => this.mapUserToResponse(user)),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-      },
-    };
-  }
-
-  async update(input: { id: string; data: UpdateUserDto }) {
+  async updateUser(input: { id: string; data: UpdateUserDto }) {
     const updateData: Record<string, unknown> = {};
     if (input.data.tagMangoId !== undefined) {
       updateData.tag_mango_id = input.data.tagMangoId;
@@ -228,22 +58,6 @@ export class UsersService {
     }
 
     return { message: 'ok' };
-  }
-
-  async remove(input: { id: string }) {
-    // Check if user exists first
-    await this.findOne({ id: input.id });
-
-    const { error } = await this.supabase
-      .from('users')
-      .delete()
-      .eq('id', input.id);
-
-    if (error) {
-      throw new Error(`Failed to delete user: ${error.message}`);
-    }
-
-    return { message: `User with ID ${input.id} deleted successfully` };
   }
 
   async getCreators() {
@@ -328,14 +142,8 @@ export class UsersService {
       errors: [] as string[],
     };
 
-    // Process users in chunks or one by one. One by one allows better error handling per user.
-    // For bulk performance, we could map and upsert, but we need to generate passwords for new ones.
-
-    // Let's iterate
     for (const user of users) {
       try {
-        // Generate a random password for new users
-        // Use a default strong password or random string
         const tempPassword = crypto.randomBytes(16).toString('hex');
 
         // Check if user exists

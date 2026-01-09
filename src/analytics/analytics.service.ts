@@ -180,11 +180,9 @@ export class AnalyticsService {
     return aiInsights;
   }
 
-  private async generateAiInsights(stats: {
-    totalMembers: number;
-    totalMeetings: number;
-    avgEngagementRate: number;
-  }): Promise<AiInsightsOutput> {
+  private async generateAiInsights(
+    stats: GetMeetingsStatsOutput,
+  ): Promise<AiInsightsOutput> {
     const openrouter = new OpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
     });
@@ -194,7 +192,9 @@ export class AnalyticsService {
       stats.totalMembers.toString(),
     )
       .replace('{{totalMeetings}}', stats.totalMeetings.toString())
-      .replace('{{avgEngagementRate}}', stats.avgEngagementRate.toFixed(2));
+      .replace('{{avgEngagementRate}}', stats.avgEngagementRate.toFixed(2))
+      .replace('{{durationBreakdown}}', JSON.stringify(stats.durationBreakdown))
+      .replace('{{timeline}}', JSON.stringify(stats.timeline));
 
     const stream = await openrouter.chat.send({
       model: 'mistralai/devstral-2512:free',

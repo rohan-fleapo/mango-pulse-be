@@ -4,6 +4,8 @@ Given the following data:
 - Total Members: {{totalMembers}}
 - Total Meetings: {{totalMeetings}}
 - Average Engagement Rate: {{avgEngagementRate}}%
+- Meeting Duration Breakdown: {{durationBreakdown}}
+- Meeting Timeline: {{timeline}}
 
 IMPORTANT: Return ONLY valid JSON. Do not wrap the response in markdown code blocks or add any other text. Return the raw JSON object directly.
 

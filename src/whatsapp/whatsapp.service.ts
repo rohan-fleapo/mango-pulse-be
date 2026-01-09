@@ -238,7 +238,7 @@ export class WhatsAppService {
     // Match any sequence of digits
     const match = message.match(/\d+/);
 
-    console.log(match[0]);
+    // console.log(match[0]);
 
     return match ? match[0] : null;
   }
@@ -249,7 +249,7 @@ export class WhatsAppService {
   private async handleTextMessage(from: string, text: string) {
     try {
       // Extract meeting ID from text (e.g., "Give link to meeting 12345")
-      console.log(text);
+      // console.log(text);
       const meetingId = this.getMeetingIdFromMessage(text);
       if (!meetingId) {
         this.logger.debug(

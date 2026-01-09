@@ -19,7 +19,12 @@ import {
 import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { MessageResponseDto } from '../common/dto/response.dto';
-import { ImportUsersDto, UpdateUserDto, UserResponseDto } from './dto';
+import {
+  CreateUserDto,
+  ImportUsersDto,
+  UpdateUserDto,
+  UserResponseDto,
+} from './dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -61,6 +66,25 @@ export class UsersController {
   })
   async getCreators(): Promise<UserResponseDto[]> {
     return this.usersService.getCreators();
+  }
+
+  @Post('add')
+  @Roles('creator')
+  @ApiOperation({
+    summary: 'Add a new user',
+    description: 'Add a single user to the platform (Creator only)',
+  })
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully',
+    type: UserResponseDto,
+  })
+  async addUser(
+    @Body() input: CreateUserDto,
+    @CurrentUser('id') userId: string,
+  ): Promise<UserResponseDto> {
+    return this.usersService.creatorAddUser(input, userId);
   }
 
   @Post('import')
@@ -127,12 +151,12 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description: 'Profile updated successfully',
-    type: UserResponseDto,
+    type: MessageResponseDto,
   })
   async updateProfile(
     @CurrentUser('id') userId: string,
     @Body() input: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  ): Promise<MessageResponseDto> {
     return this.usersService.update({ id: userId, data: input });
   }
 
@@ -151,13 +175,13 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description: 'User updated successfully',
-    type: UserResponseDto,
+    type: MessageResponseDto,
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   async update(
     @Param('id') id: string,
     @Body() input: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  ): Promise<MessageResponseDto> {
     return this.usersService.update({ id, data: input });
   }
 

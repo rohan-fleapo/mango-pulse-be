@@ -20,30 +20,30 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       url?: string;
     }>();
 
-    console.log('🛡️  JWT Guard Check:');
-    console.log('   URL:', request.url);
-    console.log('   Public:', isPublic);
-    console.log(
-      '   Auth Header:',
-      request.headers.authorization ? '✅ Present' : '❌ MISSING',
-    );
+    // console.log('🛡️  JWT Guard Check:');
+    // console.log('   URL:', request.url);
+    // console.log('   Public:', isPublic);
+    // console.log(
+    //   '   Auth Header:',
+    //   request.headers.authorization ? '✅ Present' : '❌ MISSING',
+    // );
 
     if (request.headers.authorization) {
-      console.log(
-        '   Token preview:',
-        request.headers.authorization.substring(0, 30) + '...',
-      );
+      // console.log(
+      //   '   Token preview:',
+      //   request.headers.authorization.substring(0, 30) + '...',
+      // );
     }
 
     if (isPublic) {
-      console.log('   → Allowing (public route)');
+      // console.log('   → Allowing (public route)');
       return true;
     }
 
     if (!request.headers.authorization) {
-      console.log('   → REJECTING (no auth header) - will return 401');
+      // console.log('   → REJECTING (no auth header) - will return 401');
     } else {
-      console.log('   → Validating token...');
+      // console.log('   → Validating token...');
     }
 
     return super.canActivate(context);

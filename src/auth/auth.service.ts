@@ -18,7 +18,7 @@ export class AuthService {
   ) {}
 
   async signUp(input: { input: SignUpDto }) {
-    console.log(input);
+    // console.log(input);
     const { email, password, tagMangoId, name } = input.input;
     const supabase = this.supabaseService.getAdminClient();
 

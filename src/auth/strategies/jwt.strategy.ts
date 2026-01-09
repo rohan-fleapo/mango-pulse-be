@@ -19,10 +19,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new Error('JWT_SECRET is not defined');
     }
 
-    console.log(
-      '🔑 JWT Strategy initialized with secret:',
-      jwtSecret.substring(0, 10) + '...',
-    );
+    // console.log(
+    //   '🔑 JWT Strategy initialized with secret:',
+    //   jwtSecret.substring(0, 10) + '...',
+    // );
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -32,10 +32,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload) {
-    console.log('🔍 JWT Strategy validate called with payload:', payload);
+    // console.log('🔍 JWT Strategy validate called with payload:', payload);
 
     if (!payload.sub) {
-      console.log('❌ JWT validation failed: no sub in payload');
+      // console.log('❌ JWT validation failed: no sub in payload');
       throw new UnauthorizedException('Invalid token');
     }
 

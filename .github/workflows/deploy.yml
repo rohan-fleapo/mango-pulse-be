@@ -60,7 +60,7 @@ jobs:
           image: ${{ steps.build-image.outputs.image }}
           environment-variables: |
             NODE_ENV=production
-            PORT=8080
+            PORT=8000
             TZ=UTC
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

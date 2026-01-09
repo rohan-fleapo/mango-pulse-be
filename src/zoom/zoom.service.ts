@@ -632,36 +632,6 @@ export class ZoomService {
         `Sent rating survey messages to ${ratingSurveyPromises.length} participants`,
       );
 
-      // 7. Send "Next Event" nudge messages to all participants who attended
-      const nextEventNudgePromises = Array.from(emailToUserDataMap.values())
-        .filter((userData) => userData.phone) // Only send to users with phone numbers
-        .map(async (userData) => {
-          try {
-            // Remove + prefix from phone number if present
-            const phoneNumber = userData.phone!.startsWith('+')
-              ? userData.phone!.substring(1)
-              : userData.phone!;
-
-            await this.whatsAppService.sendNextEventNudgeMessage(
-              phoneNumber,
-              meeting.id,
-              userData.id,
-            );
-            this.logger.debug(
-              `Sent next event nudge to ${userData.email} (${phoneNumber})`,
-            );
-          } catch (error: any) {
-            this.logger.warn(
-              `Failed to send next event nudge to ${userData.email}: ${error.message}`,
-            );
-          }
-        });
-
-      await Promise.all(nextEventNudgePromises);
-      this.logger.log(
-        `Sent next event nudge messages to ${nextEventNudgePromises.length} participants`,
-      );
-
       return {
         status: 'workflows_triggered',
         meetingId: input.meetingData.meetingId,
@@ -669,7 +639,6 @@ export class ZoomService {
         processedCount: emailToUserIdMap.size,
         activitiesInserted: activitiesToInsert.length,
         ratingSurveysSent: ratingSurveyPromises.length,
-        nextEventNudgesSent: nextEventNudgePromises.length,
       };
     } catch (error: any) {
       this.logger.error(

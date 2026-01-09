@@ -284,12 +284,14 @@ export class WhatsAppService {
       // Find user by phone number (try with and without +)
       let user = null;
 
+
       // Try with + prefix
       const { data: userWithPlus } = await this.supabaseAdmin
         .from('users')
         .select('id, email')
         .eq('phone', `+${from}`)
         .single();
+
 
       if (userWithPlus) {
         user = userWithPlus;
@@ -300,6 +302,7 @@ export class WhatsAppService {
           .select('id, email')
           .eq('phone', from)
           .single();
+
 
         if (userWithoutPlus) {
           user = userWithoutPlus;
@@ -526,14 +529,14 @@ export class WhatsAppService {
                 type: 'reply',
                 reply: {
                   id: `${buttonIdPrefix}:RATING_2`,
-                  title: '2 ⭐',
+                  title: '2 ⭐⭐',
                 },
               },
               {
                 type: 'reply',
                 reply: {
                   id: `${buttonIdPrefix}:RATING_3`,
-                  title: '3 ⭐',
+                  title: '3 ⭐⭐⭐',
                 },
               },
             ],
@@ -567,8 +570,8 @@ export class WhatsAppService {
     password: string,
   ): Promise<void> {
     try {
-      let messageText = `Hey you missed ${topic}.`;
-      messageText += ` Here is a link to the recording\nLink: ${recordingLink}`;
+      let messageText = `${topic} has ended.`;
+      messageText += ` Here is a link to the recording for future reference\nLink: ${recordingLink}`;
       if (password) {
         messageText += `\nPassword: ${password}`;
         const message = {

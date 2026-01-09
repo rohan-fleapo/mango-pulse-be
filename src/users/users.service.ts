@@ -3,7 +3,13 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import * as crypto from 'crypto';
 import { SupabaseService } from '../supabase/supabase.service';
 import { Database, Tables } from '../types/supabase';
-import { CreateUserDto, ImportUsersDto, UpdateUserDto } from './dto';
+import {
+  CreateUserDto,
+  GetUsersByCreatorDto,
+  GetUsersResponseDto,
+  ImportUsersDto,
+  UpdateUserDto,
+} from './dto';
 
 @Injectable()
 export class UsersService {
@@ -199,6 +205,75 @@ export class UsersService {
 
     return results;
   }
+  async getUsersList(
+    creatorId: string,
+    query: GetUsersByCreatorDto,
+  ): Promise<GetUsersResponseDto> {
+    const { page = 1, limit = 10, name, email } = query;
+    const offset = (page - 1) * limit;
+
+    let queryBuilder = this.supabase
+      .from('users')
+      .select('*', { count: 'exact' })
+      .eq('creator_id', creatorId);
+
+    if (name) {
+      queryBuilder = queryBuilder.ilike('name', `%${name}%`);
+    }
+
+    if (email) {
+      queryBuilder = queryBuilder.ilike('email', `%${email}%`);
+    }
+
+    const { data, count, error } = await queryBuilder
+      .is('deleted_at', null)
+      .range(offset, offset + limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch users: ${error.message}`);
+    }
+
+    const users = (data ?? []) as Tables<'users'>[];
+    const total = count ?? 0;
+
+    return {
+      users: users.map((u) => this.mapUserToResponse(u)),
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async softDeleteUser(creatorId: string, userId: string) {
+    const { data: user, error: fetchError } = await this.supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .eq('creator_id', creatorId)
+      .single();
+
+    if (fetchError || !user) {
+      throw new Error(
+        'User not found or you do not have permission to delete this user',
+      );
+    }
+
+    const { error } = await this.supabase
+      .from('users')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    if (error) {
+      throw new Error(`Failed to soft delete user: ${error.message}`);
+    }
+
+    return { message: 'User deleted successfully' };
+  }
+
   private async updateCreator(creatorId: string, data: UpdateUserDto) {
     const updateData: Record<string, unknown> = {};
     if (data.tagMangoId !== undefined) {

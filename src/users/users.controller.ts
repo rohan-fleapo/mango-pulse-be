@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,6 +22,8 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { MessageResponseDto } from '../common/dto/response.dto';
 import {
   CreateUserDto,
+  GetUsersByCreatorDto,
+  GetUsersResponseDto,
   ImportUsersDto,
   UpdateUserDto,
   UserResponseDto,
@@ -45,6 +49,25 @@ export class UsersController {
   })
   async getCreators(): Promise<UserResponseDto[]> {
     return this.usersService.getCreators();
+  }
+
+  @Get('list')
+  @Roles('creator')
+  @ApiOperation({
+    summary: 'Get list of users for the creator',
+    description:
+      'Get a paginated list of users associated with the creator with optional filters',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of users retrieved successfully',
+    type: GetUsersResponseDto,
+  })
+  async getUsersList(
+    @Query() query: GetUsersByCreatorDto,
+    @CurrentUser('id') userId: string,
+  ): Promise<GetUsersResponseDto> {
+    return this.usersService.getUsersList(userId, query);
   }
 
   @Post('add')
@@ -107,5 +130,28 @@ export class UsersController {
     @Body() input: UpdateUserDto,
   ): Promise<MessageResponseDto> {
     return this.usersService.updateUser({ id, data: input });
+  }
+
+  @Delete(':id')
+  @Roles('creator')
+  @ApiOperation({
+    summary: 'Delete a user',
+    description:
+      'Soft delete a user associated with the creator (Creator only)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'User UUID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted successfully',
+    type: MessageResponseDto,
+  })
+  async deleteUser(
+    @Param('id') id: string,
+    @CurrentUser('id') creatorId: string,
+  ): Promise<MessageResponseDto> {
+    return this.usersService.softDeleteUser(creatorId, id);
   }
 }

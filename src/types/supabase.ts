@@ -226,6 +226,7 @@ export type Database = {
           id: string
           is_onboarded: boolean | null
           name: string
+          deleted_at: string | null
           password: string
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -239,6 +240,7 @@ export type Database = {
           id?: string
           is_onboarded?: boolean | null
           name: string
+          deleted_at?: string | null
           password: string
           phone?: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -252,6 +254,7 @@ export type Database = {
           id?: string
           is_onboarded?: boolean | null
           name?: string
+          deleted_at?: string | null
           password?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]

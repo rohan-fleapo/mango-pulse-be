@@ -1,6 +1,41 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsObject, IsOptional, IsString } from 'class-validator';
 
+class ZoomRecordingFile {
+  @ApiProperty({ example: 'ed6c2f27-2ae7-42f4-b3d0-835b493e4fa8' })
+  id: string;
+
+  @ApiProperty({ example: '098765ABCD' })
+  meeting_id: string;
+
+  @ApiProperty({ example: '2021-03-23T22:14:57Z' })
+  recording_start: string;
+
+  @ApiProperty({ example: '2021-03-23T23:15:41Z' })
+  recording_end: string;
+
+  @ApiPropertyOptional({ example: 'audio_only' })
+  recording_type?: string;
+
+  @ApiProperty({ example: 'MP4' })
+  file_type: string;
+
+  @ApiProperty({ example: 246560 })
+  file_size: number;
+
+  @ApiProperty({ example: 'MP4' })
+  file_extension: string;
+
+  @ApiProperty({ example: 'https://example.com/recording/play/...' })
+  play_url: string;
+
+  @ApiProperty({ example: 'https://example.com/recording/download/...' })
+  download_url: string;
+
+  @ApiProperty({ example: 'completed' })
+  status: string;
+}
+
 class ZoomParticipantPayload {
   @ApiProperty({ example: 'participant123' })
   id: string;
@@ -22,8 +57,9 @@ class ZoomParticipantPayload {
 }
 
 class ZoomMeetingObject {
+  // Allow string or number for ID as Zoom can send either
   @ApiProperty({ example: '123456789' })
-  id: string;
+  id: string | number;
 
   @ApiProperty({ example: 'abc-def-ghi' })
   uuid: string;
@@ -51,11 +87,36 @@ class ZoomMeetingObject {
 
   @ApiPropertyOptional({ type: ZoomParticipantPayload })
   participant?: ZoomParticipantPayload;
+
+  // Recording specific fields
+  @ApiPropertyOptional({ example: 'https://example.com' })
+  share_url?: string;
+
+  @ApiPropertyOptional({ example: 3328371 })
+  total_size?: number;
+
+  @ApiPropertyOptional({ example: 2 })
+  recording_count?: number;
+
+  @ApiPropertyOptional({ type: [ZoomRecordingFile] })
+  recording_files?: ZoomRecordingFile[];
+
+  @ApiPropertyOptional({ example: '132456' })
+  password?: string;
 }
 
 class ZoomPayload {
   @ApiProperty({ example: 'account123' })
   account_id: string;
+
+  @ApiPropertyOptional({ example: 'admin@example.com' })
+  operator?: string;
+
+  @ApiPropertyOptional({ example: 'operator123' })
+  operator_id?: string;
+
+  @ApiPropertyOptional({ example: 'single' })
+  operation?: string;
 
   @ApiProperty({ type: ZoomMeetingObject })
   object: ZoomMeetingObject;
@@ -70,6 +131,7 @@ export class ZoomWebhookDto {
       'meeting.ended',
       'meeting.participant_joined',
       'meeting.participant_left',
+      'recording.completed',
     ],
   })
   @IsString()
@@ -87,8 +149,16 @@ export class ZoomWebhookDto {
     example: '1704700800000',
   })
   @IsOptional()
+  // Can be string or number
+  event_ts?: string | number;
+
+  @ApiPropertyOptional({
+    description: 'Download token for recordings',
+    example: 'abJhbGciOiJIUzUxMiJ9...',
+  })
+  @IsOptional()
   @IsString()
-  event_ts?: string;
+  download_token?: string;
 }
 
 export class ZoomValidationDto {
@@ -102,7 +172,7 @@ export class ZoomValidationDto {
 
 export class ZoomMeetingEndedDto {
   @ApiProperty({ example: '123456789' })
-  meetingId: string;
+  meetingId: string | number;
 
   @ApiProperty({ example: 'abc-def-ghi' })
   meetingUuid: string;
@@ -146,7 +216,7 @@ export class ZoomParticipantDto {
   userName: string;
 
   @ApiProperty({ example: '123456789' })
-  meetingId: string;
+  meetingId: string | number;
 
   @ApiProperty({ example: '2026-01-08T10:00:00Z' })
   joinTime: string;

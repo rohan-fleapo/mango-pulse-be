@@ -29,7 +29,7 @@ export class ZoomService {
   }
 
   handleWebhook(input: { webhookData: ZoomWebhookDto }) {
-    const { event, payload } = input.webhookData;
+    const { event, payload, download_token } = input.webhookData;
 
     this.logger.log(`Received Zoom webhook event: ${event}`);
 
@@ -46,6 +46,12 @@ export class ZoomService {
       case 'meeting.participant_left':
         return this.handleParticipantLeft({ payload });
 
+      case 'recording.completed':
+        return this.handleRecordingCompleted({
+          payload,
+          downloadToken: download_token,
+        });
+
       default:
         this.logger.warn(`Unhandled webhook event: ${event}`);
         return { status: 'unhandled', event };
@@ -58,7 +64,8 @@ export class ZoomService {
     this.logger.log(`Meeting started: ${object.topic} (ID: ${object.id})`);
 
     // Initialize participant tracking for this meeting
-    this.meetingParticipants.set(object.id, []);
+    // Ensure ID is string for map key
+    this.meetingParticipants.set(String(object.id), []);
 
     return {
       status: 'meeting_started',
@@ -73,7 +80,7 @@ export class ZoomService {
 
     this.logger.log(`Meeting ended: ${object.topic} (ID: ${object.id})`);
 
-    const participants = this.meetingParticipants.get(object.id) || [];
+    const participants = this.meetingParticipants.get(String(object.id)) || [];
 
     const meetingData: ZoomMeetingEndedDto = {
       meetingId: object.id,
@@ -96,7 +103,7 @@ export class ZoomService {
     this.triggerPostMeetingWorkflows({ meetingData });
 
     // Cleanup
-    this.meetingParticipants.delete(object.id);
+    this.meetingParticipants.delete(String(object.id));
 
     return {
       status: 'meeting_ended',
@@ -127,9 +134,9 @@ export class ZoomService {
     };
 
     // Add to meeting participants
-    const participants = this.meetingParticipants.get(object.id) || [];
+    const participants = this.meetingParticipants.get(String(object.id)) || [];
     participants.push(participantData);
-    this.meetingParticipants.set(object.id, participants);
+    this.meetingParticipants.set(String(object.id), participants);
 
     return {
       status: 'participant_joined',
@@ -150,20 +157,53 @@ export class ZoomService {
     );
 
     // Update participant leave time
-    const participants = this.meetingParticipants.get(object.id) || [];
+    const participants = this.meetingParticipants.get(String(object.id)) || [];
     const participantIndex = participants.findIndex(
       (p) => p.email === participant.email,
     );
 
     if (participantIndex !== -1) {
       participants[participantIndex].leaveTime = participant.leave_time;
-      this.meetingParticipants.set(object.id, participants);
+      this.meetingParticipants.set(String(object.id), participants);
     }
 
     return {
       status: 'participant_left',
       email: participant.email,
       leaveTime: participant.leave_time,
+    };
+  }
+
+  private handleRecordingCompleted(input: {
+    payload: ZoomWebhookDto['payload'];
+    downloadToken?: string;
+  }) {
+    const { object } = input.payload;
+    const { downloadToken } = input;
+
+    this.logger.log(`Recording completed: ${object.topic} (ID: ${object.id})`);
+
+    // Log recording details
+    if (object.recording_files) {
+      this.logger.log(
+        `Received ${object.recording_files.length} recording files. Total size: ${object.total_size} bytes.`,
+      );
+    }
+
+    if (downloadToken) {
+      this.logger.log(
+        'Download token received available for accessing recordings.',
+      );
+    }
+
+    // Return useful info, could trigger further processing here (e.g. download and upload to S3)
+    return {
+      status: 'recording_completed',
+      meetingId: object.id,
+      topic: object.topic,
+      recordingFiles: object.recording_files,
+      shareUrl: object.share_url,
+      downloadToken: downloadToken,
     };
   }
 

@@ -217,6 +217,7 @@ export class UsersService {
 
     return results;
   }
+
   async getUsersList(
     creatorId: string,
     query: GetUsersByCreatorDto,
@@ -227,6 +228,7 @@ export class UsersService {
     let queryBuilder = this.supabase
       .from('users')
       .select('*', { count: 'exact' })
+      .eq('role', 'member')
       .eq('creator_id', creatorId);
 
     if (name) {

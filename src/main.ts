@@ -37,7 +37,12 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api', { exclude: ['/'] });
 
   // CORS
-  const allowedOrigins = ['http://localhost:3000', 'http://localhost:8080'];
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'https://mangopulse.org',
+    'https://api.mangopulse.org',
+  ];
   app.enableCors({
     origin: allowedOrigins,
     credentials: true,

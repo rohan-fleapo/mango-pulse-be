@@ -78,7 +78,7 @@ export class AnalyticsService {
     }
 
     const durationBreakdown = this.getMeetingsDurationBreakdown(meetings);
-    const timeline = await this.getMeetingsTimeline(user);
+    const timeline = await this.getMeetingsTimeline(user, query);
 
     return {
       totalMembers: members?.length ?? 0,
@@ -128,14 +128,19 @@ export class AnalyticsService {
 
   private async getMeetingsTimeline(
     user: UserDto,
+    query: AnalyticsQueryDto,
   ): Promise<MeetingTimelineItem[]> {
     const supabase = this.supabaseService.getAdminClient();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - 14);
-    const endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const startDate = query.startDate
+      ? new Date(query.startDate)
+      : new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const endDate = query.endDate
+      ? new Date(query.endDate)
+      : new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
     const { data: meetings } = await supabase
       .from('meetings')
@@ -151,15 +156,15 @@ export class AnalyticsService {
     });
 
     const timeline: MeetingTimelineItem[] = [];
-    for (let i = 14; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+    const currentDate = new Date(startDate);
 
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
       timeline.push({
         date: dateStr,
         attendees: countsByDate.get(dateStr) || 0,
       });
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
     return timeline;

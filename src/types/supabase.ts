@@ -4,120 +4,120 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.1';
-  };
+    PostgrestVersion: "14.1"
+  }
   public: {
     Tables: {
       meeting_activities: {
         Row: {
-          created_at: string | null;
-          id: string;
-          joining_time: string;
-          leaving_time: string | null;
-          meeting_id: string;
-          updated_at: string | null;
-          user_id: string;
-        };
+          created_at: string | null
+          id: string
+          joining_time: string
+          leaving_time: string | null
+          meeting_id: string
+          updated_at: string | null
+          user_id: string
+        }
         Insert: {
-          created_at?: string | null;
-          id?: string;
-          joining_time: string;
-          leaving_time?: string | null;
-          meeting_id: string;
-          updated_at?: string | null;
-          user_id: string;
-        };
+          created_at?: string | null
+          id?: string
+          joining_time: string
+          leaving_time?: string | null
+          meeting_id: string
+          updated_at?: string | null
+          user_id: string
+        }
         Update: {
-          created_at?: string | null;
-          id?: string;
-          joining_time?: string;
-          leaving_time?: string | null;
-          meeting_id?: string;
-          updated_at?: string | null;
-          user_id?: string;
-        };
+          created_at?: string | null
+          id?: string
+          joining_time?: string
+          leaving_time?: string | null
+          meeting_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: 'fk_activity_meeting';
-            columns: ['meeting_id'];
-            isOneToOne: false;
-            referencedRelation: 'meetings';
-            referencedColumns: ['id'];
+            foreignKeyName: "fk_activity_meeting"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'fk_activity_user';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
+            foreignKeyName: "fk_activity_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       meeting_engagements: {
         Row: {
-          attended: boolean | null;
-          created_at: string | null;
-          cycle: number | null;
-          id: string;
-          interested: Database['public']['Enums']['meeting_interest'] | null;
-          meeting_id: string;
-          rating: number | null;
-          updated_at: string | null;
-          user_email: string;
-          user_id: string;
-        };
+          attended: boolean | null
+          created_at: string | null
+          cycle: number | null
+          id: string
+          interested: Database["public"]["Enums"]["meeting_interest"] | null
+          meeting_id: string
+          rating: number | null
+          updated_at: string | null
+          user_email: string
+          user_id: string
+        }
         Insert: {
-          attended?: boolean | null;
-          created_at?: string | null;
-          cycle?: number | null;
-          id?: string;
-          interested?: Database['public']['Enums']['meeting_interest'] | null;
-          meeting_id: string;
-          rating?: number | null;
-          updated_at?: string | null;
-          user_email: string;
-          user_id: string;
-        };
+          attended?: boolean | null
+          created_at?: string | null
+          cycle?: number | null
+          id?: string
+          interested?: Database["public"]["Enums"]["meeting_interest"] | null
+          meeting_id: string
+          rating?: number | null
+          updated_at?: string | null
+          user_email: string
+          user_id: string
+        }
         Update: {
-          attended?: boolean | null;
-          created_at?: string | null;
-          cycle?: number | null;
-          id?: string;
-          interested?: Database['public']['Enums']['meeting_interest'] | null;
-          meeting_id?: string;
-          rating?: number | null;
-          updated_at?: string | null;
-          user_email?: string;
-          user_id?: string;
-        };
+          attended?: boolean | null
+          created_at?: string | null
+          cycle?: number | null
+          id?: string
+          interested?: Database["public"]["Enums"]["meeting_interest"] | null
+          meeting_id?: string
+          rating?: number | null
+          updated_at?: string | null
+          user_email?: string
+          user_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: 'fk_engagement_meeting';
-            columns: ['meeting_id'];
-            isOneToOne: false;
-            referencedRelation: 'meetings';
-            referencedColumns: ['id'];
+            foreignKeyName: "fk_engagement_meeting"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'fk_engagement_user';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
+            foreignKeyName: "fk_engagement_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       meeting_feedbacks: {
         Row: {
-          created_at: string | null;
-          id: string;
-          meeting_id: string;
+          created_at: string | null
+          id: string
+          meeting_id: string
           next_meeting_interested:
             | Database["public"]["Enums"]["meeting_interest"]
             | null
@@ -126,9 +126,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          created_at?: string | null;
-          id?: string;
-          meeting_id: string;
+          created_at?: string | null
+          id?: string
+          meeting_id: string
           next_meeting_interested?:
             | Database["public"]["Enums"]["meeting_interest"]
             | null
@@ -137,9 +137,9 @@ export type Database = {
           user_id: string
         }
         Update: {
-          created_at?: string | null;
-          id?: string;
-          meeting_id?: string;
+          created_at?: string | null
+          id?: string
+          meeting_id?: string
           next_meeting_interested?:
             | Database["public"]["Enums"]["meeting_interest"]
             | null
@@ -149,56 +149,56 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'fk_feedback_meeting';
-            columns: ['meeting_id'];
-            isOneToOne: false;
-            referencedRelation: 'meetings';
-            referencedColumns: ['id'];
+            foreignKeyName: "fk_feedback_meeting"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'fk_feedback_user';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
+            foreignKeyName: "fk_feedback_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       meetings: {
         Row: {
-          created_at: string | null;
-          creator_id: string;
-          end_date: string | null;
-          id: string;
-          invite_sent_at: string | null;
-          link: string;
-          meeting_id: string | null;
-          notify_before_mins: number | null;
-          recording_link: string | null;
-          recording_password: string | null;
-          scheduled_end_date: string;
-          send_not_interested: boolean | null;
-          start_date: string;
-          topic: string | null;
-          updated_at: string | null;
-        };
+          created_at: string | null
+          creator_id: string
+          end_date: string | null
+          id: string
+          invite_sent_at: string | null
+          link: string
+          meeting_id: string | null
+          notify_before_mins: number | null
+          recording_link: string | null
+          recording_password: string | null
+          scheduled_end_date: string
+          send_not_interested: boolean | null
+          start_date: string
+          topic: string | null
+          updated_at: string | null
+        }
         Insert: {
-          created_at?: string | null;
-          creator_id: string;
-          end_date?: string | null;
-          id?: string;
-          invite_sent_at?: string | null;
-          link: string;
-          meeting_id?: string | null;
-          notify_before_mins?: number | null;
-          recording_link?: string | null;
-          recording_password?: string | null;
-          scheduled_end_date: string;
-          send_not_interested?: boolean | null;
-          start_date: string;
-          topic?: string | null;
-          updated_at?: string | null;
-        };
+          created_at?: string | null
+          creator_id: string
+          end_date?: string | null
+          id?: string
+          invite_sent_at?: string | null
+          link: string
+          meeting_id?: string | null
+          notify_before_mins?: number | null
+          recording_link?: string | null
+          recording_password?: string | null
+          scheduled_end_date: string
+          send_not_interested?: boolean | null
+          start_date: string
+          topic?: string | null
+          updated_at?: string | null
+        }
         Update: {
           created_at?: string | null
           creator_id?: string
@@ -290,8 +290,8 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never;
-    };
+      [_ in never]: never
+    }
     Functions: {
       get_meet_view_percentage: {
         Args: { p_meeting_id: string }
@@ -303,34 +303,31 @@ export type Database = {
       }
     }
     Enums: {
-      meeting_interest: 'yes' | 'no' | 'maybe' | 'no-response';
-      user_role: 'member' | 'creator';
-    };
+      meeting_interest: "yes" | "no" | "maybe" | "no-response"
+      user_role: "member" | "creator"
+    }
     CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
-};
+      [_ in never]: never
+    }
+  }
+}
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<
-  keyof Database,
-  'public'
->];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
@@ -353,12 +350,12 @@ export type TablesInsert<
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
@@ -378,12 +375,12 @@ export type TablesUpdate<
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
@@ -403,12 +400,12 @@ export type Enums<
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
@@ -420,12 +417,12 @@ export type CompositeTypes<
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
@@ -435,8 +432,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      meeting_interest: ['yes', 'no', 'maybe', 'no-response'],
-      user_role: ['member', 'creator'],
+      meeting_interest: ["yes", "no", "maybe", "no-response"],
+      user_role: ["member", "creator"],
     },
   },
-} as const;
+} as const

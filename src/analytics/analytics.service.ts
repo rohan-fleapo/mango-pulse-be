@@ -13,6 +13,7 @@ import {
 } from './dto';
 import {
   GetMeetingsStatsOutput,
+  MeetingDurationBreakdown,
   MeetingTimelineItem,
 } from './dto/meeting-stats.dto';
 import { MEETING_INSIGHTS_PROMPT } from './prompts/meeting-insights.prompt';
@@ -77,42 +78,8 @@ export class AnalyticsService {
       }
     }
 
-    const durationBreakdown = {
-      '0-15': 0,
-      '15-30': 0,
-      '30-45': 0,
-      '45-60': 0,
-      '60+': 0,
-    };
-
-    if (meetings) {
-      meetings.forEach((meeting) => {
-        if (
-          meeting.start_date &&
-          (meeting.end_date || meeting.scheduled_end_date)
-        ) {
-          const startTime = new Date(meeting.start_date).getTime();
-          const endTime = new Date(
-            meeting.end_date || meeting.scheduled_end_date,
-          ).getTime();
-          const durationMinutes = (endTime - startTime) / (1000 * 60);
-
-          if (durationMinutes <= 15) {
-            durationBreakdown['0-15']++;
-          } else if (durationMinutes <= 30) {
-            durationBreakdown['15-30']++;
-          } else if (durationMinutes <= 45) {
-            durationBreakdown['30-45']++;
-          } else if (durationMinutes <= 60) {
-            durationBreakdown['45-60']++;
-          } else {
-            durationBreakdown['60+']++;
-          }
-        }
-      });
-    }
-
-    const timeline = await this.getMeetingsTimeline(user);
+    const durationBreakdown = this.getMeetingsDurationBreakdown(meetings);
+    const timeline = await this.getMeetingsTimeline(user, query);
 
     return {
       totalMembers: members?.length ?? 0,
@@ -123,16 +90,58 @@ export class AnalyticsService {
     };
   }
 
+  private getMeetingsDurationBreakdown(meetings) {
+    const breakdown = {
+      '0-15': 0,
+      '15-30': 0,
+      '30-45': 0,
+      '45-60': 0,
+      '60+': 0,
+    };
+
+    meetings?.forEach((meeting) => {
+      if (
+        meeting.start_date &&
+        (meeting.end_date || meeting.scheduled_end_date)
+      ) {
+        const startTime = new Date(meeting.start_date).getTime();
+        const endTime = new Date(
+          meeting.end_date || meeting.scheduled_end_date,
+        ).getTime();
+        const durationMinutes = (endTime - startTime) / (1000 * 60);
+
+        if (durationMinutes <= 15) {
+          breakdown['0-15']++;
+        } else if (durationMinutes <= 30) {
+          breakdown['15-30']++;
+        } else if (durationMinutes <= 45) {
+          breakdown['30-45']++;
+        } else if (durationMinutes <= 60) {
+          breakdown['45-60']++;
+        } else {
+          breakdown['60+']++;
+        }
+      }
+    });
+
+    return breakdown;
+  }
+
   private async getMeetingsTimeline(
     user: UserDto,
+    query: AnalyticsQueryDto,
   ): Promise<MeetingTimelineItem[]> {
     const supabase = this.supabaseService.getAdminClient();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - 14);
-    const endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const startDate = query.startDate
+      ? new Date(query.startDate)
+      : new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const endDate = query.endDate
+      ? new Date(query.endDate)
+      : new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
     const { data: meetings } = await supabase
       .from('meetings')
@@ -148,15 +157,15 @@ export class AnalyticsService {
     });
 
     const timeline: MeetingTimelineItem[] = [];
-    for (let i = 14; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+    const currentDate = new Date(startDate);
 
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
       timeline.push({
         date: dateStr,
         attendees: countsByDate.get(dateStr) || 0,
       });
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
     return timeline;
@@ -172,21 +181,36 @@ export class AnalyticsService {
     return aiInsights;
   }
 
-  private async generateAiInsights(stats: {
-    totalMembers: number;
-    totalMeetings: number;
-    avgEngagementRate: number;
-  }): Promise<AiInsightsOutput> {
+  private formatDurationBreakdown(breakdown: MeetingDurationBreakdown) {
+    return Object.entries(breakdown)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+  }
+
+  private formatTimeline(timeline: MeetingTimelineItem[]) {
+    return timeline.map((item) => `${item.date}: ${item.attendees}`).join(', ');
+  }
+
+  private async generateAiInsights(
+    stats: GetMeetingsStatsOutput,
+  ): Promise<AiInsightsOutput> {
     const openrouter = new OpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
     });
+
+    const durationBreakdownText = this.formatDurationBreakdown(
+      stats.durationBreakdown,
+    );
+    const timelineText = this.formatTimeline(stats.timeline);
 
     const prompt = MEETING_INSIGHTS_PROMPT.replace(
       '{{totalMembers}}',
       stats.totalMembers.toString(),
     )
       .replace('{{totalMeetings}}', stats.totalMeetings.toString())
-      .replace('{{avgEngagementRate}}', stats.avgEngagementRate.toFixed(2));
+      .replace('{{avgEngagementRate}}', stats.avgEngagementRate.toFixed(2))
+      .replace('{{durationBreakdown}}', durationBreakdownText)
+      .replace('{{timeline}}', timelineText);
 
     const stream = await openrouter.chat.send({
       model: 'mistralai/devstral-2512:free',

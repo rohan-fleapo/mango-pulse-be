@@ -55,15 +55,11 @@ export class ZoomService {
             plainToken: payload.plainToken,
             encryptedToken: hashForValidate,
           },
-          status: 200,
         });
 
         return {
-          message: {
-            plainToken: payload.plainToken,
-            encryptedToken: hashForValidate,
-          },
-          status: 200,
+          plainToken: payload.plainToken,
+          encryptedToken: hashForValidate,
         };
 
       case 'meeting.started':
@@ -114,7 +110,58 @@ export class ZoomService {
 
     this.logger.log(`Meeting ended: ${object.topic} (ID: ${object.id})`);
 
-    const participants = this.meetingParticipants.get(String(object.id)) || [];
+    const participants = await this.getPastMeetingParticipants(
+      input.payload.object.id,
+    );
+
+    const temp = participants.participants;
+
+    console.dir({ temp, depth: null });
+
+    // Find the meeting in database to get creator_id
+    const meetingIdStr = String(object.id);
+    const { data: meeting, error: meetingError } = await this.supabaseAdmin
+      .from('meetings')
+      .select('id, creator_id')
+      .eq('meeting_id', meetingIdStr)
+      .single();
+
+    let creatorEmail: string | null = null;
+
+    if (!meetingError && meeting?.creator_id) {
+      // Get creator's email
+      const { data: creator, error: creatorError } = await this.supabaseAdmin
+        .from('users')
+        .select('email')
+        .eq('id', meeting.creator_id)
+        .single();
+
+      if (!creatorError && creator) {
+        creatorEmail = creator.email;
+        this.logger.debug(
+          `Found meeting creator email: ${creatorEmail} (user_id: ${meeting.creator_id})`,
+        );
+      }
+    } else {
+      this.logger.debug(
+        `Meeting not found in database or has no creator_id. Meeting ID: ${meetingIdStr}`,
+      );
+    }
+
+    // Filter out creator from participants
+    const filteredParticipants = participants.participants.filter((p) => {
+      if (creatorEmail && p.user_email === creatorEmail) {
+        this.logger.debug(
+          `Skipping creator participant: ${p.user_email} (${p.name})`,
+        );
+        return false;
+      }
+      return true;
+    });
+
+    this.logger.log(
+      `Total participants: ${participants.participants.length}, After filtering creator: ${filteredParticipants.length}`,
+    );
 
     const meetingData: ZoomMeetingEndedDto = {
       meetingId: object.id,
@@ -124,12 +171,12 @@ export class ZoomService {
       startTime: object.start_time,
       endTime: object.end_time || new Date().toISOString(),
       duration: object.duration,
-      participants: participants.map((p) => ({
+      participants: filteredParticipants.map((p) => ({
         id: p.id,
-        email: p.email,
-        userName: p.userName,
-        joinTime: p.joinTime,
-        leaveTime: p.leaveTime || object.end_time || new Date().toISOString(),
+        email: p.user_email,
+        joinTime: p.join_time,
+        leaveTime: p.leave_time,
+        userName: p.name,
       })),
     };
 
@@ -275,20 +322,19 @@ export class ZoomService {
       }
 
       // 3. Find users who did NOT attend (attended = false)
-      const { data: nonAttendees, error: engagementsError } =
+      const { data: invities, error: engagementsError } =
         await this.supabaseAdmin
           .from('meeting_engagements')
           .select('user_id, user_email')
           .eq('meeting_id', meeting.id)
-          .eq('attended', false);
 
       if (engagementsError) {
         this.logger.error(
           `Error fetching non-attendees: ${engagementsError.message}`,
         );
-      } else if (nonAttendees && nonAttendees.length > 0) {
+      } else if (invities && invities.length > 0) {
         // 4. Get user phone numbers for non-attendees
-        const userIds = nonAttendees.map((e) => e.user_id);
+        const userIds = invities.map((e) => e.user_id);
         const { data: users, error: usersError } = await this.supabaseAdmin
           .from('users')
           .select('id, email, phone')
@@ -400,6 +446,8 @@ export class ZoomService {
 
     try {
       const participants = input.meetingData.participants || [];
+
+      console.dir({ participants, depth: null });
       if (participants.length === 0) {
         this.logger.warn('No participants found in meeting data');
         return {

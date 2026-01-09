@@ -266,6 +266,11 @@ class ZoomMeetingSettingsDto {
   @IsOptional()
   @IsString()
   auto_recording?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  meeting_authentication?: boolean;
 }
 
 export class CreateZoomMeetingDto {

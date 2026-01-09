@@ -1,7 +1,7 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
+import Razorpay from 'razorpay';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -42,7 +42,6 @@ export class PaymentsService {
     // Let's create a plan on the fly if needed, but that creates duplicates.
     // Let's assume we create one and return it for the session (in-memory) or create a fresh one.
     // Creating fresh one every time is bad.
-    // Recommendation: Warn user to add PLAN_ID. For now, create a temp one.
 
     const plan = await this.razorpay.plans.create({
       period: 'monthly',

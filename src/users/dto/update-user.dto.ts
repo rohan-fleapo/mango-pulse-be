@@ -38,4 +38,11 @@ export class UpdateUserDto {
   @IsString()
   @IsIn(['member', 'creator'])
   role?: 'member' | 'creator';
+
+  @ApiPropertyOptional({
+    description: 'User onboarding status',
+    example: true,
+  })
+  @IsOptional()
+  isOnboarded?: boolean;
 }

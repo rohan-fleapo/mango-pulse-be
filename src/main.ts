@@ -30,7 +30,7 @@ async function bootstrap(): Promise<void> {
   );
 
   // Global prefix
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', { exclude: ['/'] });
 
   // CORS
   const allowedOrigins = ['http://localhost:3000', 'http://localhost:8080'];

@@ -4,7 +4,7 @@ import { Public } from './auth/decorators';
 @Controller()
 export class AppController {
   @Public()
-  @Get('health')
+  @Get()
   getHealth() {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }

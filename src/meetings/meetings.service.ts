@@ -220,7 +220,6 @@ export class MeetingsService {
       );
     }
 
-    // Update Zoom
     const updatePayload: UpdateZoomMeetingDto = {};
     if (topic) updatePayload.topic = topic;
     if (startTime) updatePayload.start_time = startTime;

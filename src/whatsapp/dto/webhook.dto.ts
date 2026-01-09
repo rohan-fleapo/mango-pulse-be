@@ -175,14 +175,100 @@ export class WhatsAppEntryDto {
   changes: WhatsAppChangeDto[];
 }
 
-export class WhatsAppWebhookDto {
-  @ApiProperty()
+export class WhatsAppMetadata {
   @IsString()
-  object: string;
+  display_phone_number: string;
 
-  @ApiProperty()
+  @IsString()
+  phone_number_id: string;
+}
+export class WhatsAppButtonReply {
+  @IsString()
+  id: string;
+
+  @IsString()
+  title: string;
+}
+
+export class WhatsAppProfile {
+  @IsString()
+  name: string;
+}
+
+export class WhatsAppText {
+  @IsString()
+  body: string;
+}
+
+export class WhatsAppInteractive {
+  @IsString()
+  type: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WhatsAppButtonReply)
+  button_reply?: WhatsAppButtonReply;
+}
+
+export class WhatsAppContact {
+  @ValidateNested()
+  @Type(() => WhatsAppProfile)
+  profile: WhatsAppProfile;
+
+  @IsString()
+  wa_id: string;
+}
+
+export class WhatsAppMessage {
+  @IsString()
+  from: string;
+
+  @IsString()
+  id: string;
+
+  @IsString()
+  timestamp: string;
+
+  @IsString()
+  type: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WhatsAppText)
+  text?: WhatsAppText;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WhatsAppInteractive)
+  interactive?: WhatsAppInteractive;
+}
+
+export class WhatsAppWebhookData {
+  @IsString()
+  messaging_product: string;
+
+  @ValidateNested()
+  @Type(() => WhatsAppMetadata)
+  metadata: WhatsAppMetadata;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => WhatsAppEntryDto)
-  entry: WhatsAppEntryDto[];
+  @Type(() => WhatsAppContact)
+  contacts?: WhatsAppContact[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WhatsAppMessage)
+  messages?: WhatsAppMessage[];
+
+  @IsString()
+  field: string;
+}
+
+export class WhatsAppWebhookInput {
+  @ValidateNested()
+  @Type(() => WhatsAppWebhookData)
+  data: WhatsAppWebhookData;
 }

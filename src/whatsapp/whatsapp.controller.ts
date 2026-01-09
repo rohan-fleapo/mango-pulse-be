@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { Public } from '../auth/decorators';
 import { SendWhatsAppTemplateDto } from './dto/send-message.dto';
+import { WhatsAppWebhookInput } from './dto/webhook.dto';
 import { WhatsAppService } from './whatsapp.service';
 
 @ApiTags('WhatsApp')
@@ -73,11 +74,11 @@ export class WhatsAppController {
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Receive WhatsApp webhook events' })
-  //@ApiBody({ type: WhatsAppWebhookDto })
+  @ApiBody({ type: WhatsAppWebhookInput })
   @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
   async handleWebhook(@Body() body: any): Promise<{ status: string }> {
     this.logger.log('Webhook event received');
     console.log(JSON.stringify(body));
-    return this.whatsAppService.handleWebhook(body);
+    return this.whatsAppService.handleWebhook(body as WhatsAppWebhookInput);
   }
 }

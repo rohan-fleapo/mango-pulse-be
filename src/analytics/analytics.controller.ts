@@ -9,6 +9,7 @@ import {
   AiInsightsOutput,
   AnalyticsQueryDto,
   MeetingDetailsAnalyticsOutput,
+  MeetViewPercentageGraphOutput,
 } from './dto';
 import { GetMeetingsStatsOutput } from './dto/meeting-stats.dto';
 
@@ -46,6 +47,8 @@ export class AnalyticsController {
     @Param('meetingId') meetingId: string,
     @CurrentUser() user: UserDto,
   ): Promise<ActivityAnalyticsOutput> {
+    console.log('meetingId', meetingId);
+    console.log('user', user);
     return this.analyticsService.getActivityAnalytics({ meetingId, user });
   }
 
@@ -57,6 +60,19 @@ export class AnalyticsController {
     @CurrentUser() user: UserDto,
   ): Promise<MeetingDetailsAnalyticsOutput> {
     return this.analyticsService.getMeetingAnalyticsDetails({
+      meetingId,
+      user,
+    });
+  }
+
+  @ApiResponse({ type: MeetViewPercentageGraphOutput, isArray: true })
+  @Get('meeting/:meetingId/view-percentage')
+  @Roles('creator')
+  async getMeetViewPercentageGraph(
+    @Param('meetingId') meetingId: string,
+    @CurrentUser() user: UserDto,
+  ): Promise<MeetViewPercentageGraphOutput[]> {
+    return this.analyticsService.getMeetViewPercentageGraph({
       meetingId,
       user,
     });

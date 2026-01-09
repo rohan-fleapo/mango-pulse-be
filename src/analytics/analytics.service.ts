@@ -165,7 +165,7 @@ export class AnalyticsService {
       const dateStr = currentDate.toISOString().split('T')[0];
       timeline.push({
         date: dateStr,
-        attendees: countsByDate.get(dateStr) || 0,
+        count: countsByDate.get(dateStr) || 0,
       });
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -190,7 +190,7 @@ export class AnalyticsService {
   }
 
   private formatTimeline(timeline: MeetingTimelineItem[]) {
-    return timeline.map((item) => `${item.date}: ${item.attendees}`).join(', ');
+    return timeline.map((item) => `${item.date}: ${item.count}`).join(', ');
   }
 
   private async generateAiInsights(

@@ -95,7 +95,7 @@ export class MeetingsService {
       this.logger.error(
         `Failed to save meeting to DB: ${meetingError.message}`,
       );
-      // Try to rollback Zoom meeting?
+
       await this.zoomService
         .deleteMeeting(zoomMeeting.id)
         .catch((e) => this.logger.error(`Rollback failed: ${e}`));

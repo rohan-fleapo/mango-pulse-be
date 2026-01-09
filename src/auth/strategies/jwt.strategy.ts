@@ -19,11 +19,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new Error('JWT_SECRET is not defined');
     }
 
-    // console.log(
-    //   '🔑 JWT Strategy initialized with secret:',
-    //   jwtSecret.substring(0, 10) + '...',
-    // );
-
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,

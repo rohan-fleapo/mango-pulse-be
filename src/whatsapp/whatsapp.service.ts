@@ -486,4 +486,167 @@ export class WhatsAppService {
       throw error;
     }
   }
+
+  /**
+   * Send rating survey message after meeting ends
+   * @param to Phone number (without + prefix)
+   * @param meetingId Database meeting ID (UUID)
+   * @param userId User ID (UUID)
+   * @param topic Meeting topic
+   */
+  async sendRatingSurveyMessage(
+    to: string,
+    meetingId: string,
+    userId: string,
+    topic: string,
+  ): Promise<void> {
+    try {
+      const buttonIdPrefix = `${meetingId}:${userId}`;
+      const bodyText = `⭐ How would you rate meeting ${topic}?\nPlease tap a rating:`;
+
+      const message = {
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: {
+            text: bodyText,
+          },
+          action: {
+            buttons: [
+              {
+                type: 'reply',
+                reply: {
+                  id: `${buttonIdPrefix}:RATING_1`,
+                  title: '1 ⭐',
+                },
+              },
+              {
+                type: 'reply',
+                reply: {
+                  id: `${buttonIdPrefix}:RATING_2`,
+                  title: '2 ⭐',
+                },
+              },
+              {
+                type: 'reply',
+                reply: {
+                  id: `${buttonIdPrefix}:RATING_3`,
+                  title: '3 ⭐',
+                },
+              },
+            ],
+          },
+        },
+      };
+
+      await this.axiosInstance.post(`/${this.phoneNumberId}/messages`, message);
+      this.logger.log(
+        `Sent rating survey message to ${to} for meeting ${meetingId}`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send rating survey message: ${error.response?.data?.error?.message || error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Send "missed you" message with recording link to users who didn't attend
+   * @param to Phone number (without + prefix)
+   * @param topic Meeting topic
+   * @param recordingLink Recording share URL
+   * @param password Recording password
+   */
+  async sendMissedMeetingMessage(
+    to: string,
+    topic: string,
+    recordingLink: string,
+    password: string,
+  ): Promise<void> {
+    try {
+      let messageText = `Hey you missed ${topic}.`;
+      messageText += ` Here is a link to the recording\nLink: ${recordingLink}`;
+      if (password) {
+        messageText += `\nPassword: ${password}`;
+        const message = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: to,
+          type: 'text',
+          text: {
+            body: messageText,
+          },
+        };
+
+        await this.axiosInstance.post(
+          `/${this.phoneNumberId}/messages`,
+          message,
+        );
+        this.logger.log(
+          `Sent missed meeting message to ${to} for meeting: ${topic}`,
+        );
+      }
+    } catch (error: any) {
+      this.logger.error(`Failed to send missed meeting message: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Send "Next Event" nudge message asking if user will attend next meeting
+   * @param to Phone number (without + prefix)
+   * @param meetingId Database meeting ID (UUID)
+   * @param userId User ID (UUID)
+   */
+  async sendNextEventNudgeMessage(
+    to: string,
+    meetingId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      const buttonIdPrefix = `${meetingId}:${userId}`;
+      const message = {
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: {
+            text: 'Will you be attending the next meet?',
+          },
+          action: {
+            buttons: [
+              {
+                type: 'reply',
+                reply: {
+                  id: `${buttonIdPrefix}:NEXT_ATTEND_REPLY_YES`,
+                  title: 'Yes',
+                },
+              },
+              {
+                type: 'reply',
+                reply: {
+                  id: `${buttonIdPrefix}:NEXT_ATTEND_REPLY_NO`,
+                  title: 'No',
+                },
+              },
+            ],
+          },
+        },
+      };
+
+      await this.axiosInstance.post(`/${this.phoneNumberId}/messages`, message);
+      this.logger.log(
+        `Sent next event nudge message to ${to} for meeting ${meetingId}`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send next event nudge message: ${error.response?.data?.error?.message || error.message}`,
+      );
+      throw error;
+    }
+  }
 }

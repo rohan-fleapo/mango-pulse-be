@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Logger,
@@ -10,6 +11,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -19,6 +21,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 import { Public } from '../auth/decorators';
 import {
   CreateZoomMeetingDto,
@@ -28,7 +31,6 @@ import {
   ZoomParticipantDto,
   ZoomPastMeetingParticipantsResponseDto,
   ZoomValidationDto,
-  ZoomWebhookDto,
 } from './dto';
 import { ZoomService } from './zoom.service';
 
@@ -50,7 +52,7 @@ export class ZoomController {
     description:
       'Endpoint for receiving Zoom meeting lifecycle events (meeting.started, meeting.ended, participant_joined, participant_left). This endpoint is public and should be configured in Zoom webhook settings.',
   })
-  @ApiBody({ type: ZoomWebhookDto })
+  //@ApiBody({ type: ZoomWebhookDto })
   @ApiResponse({
     status: 200,
     description: 'Webhook processed successfully',
@@ -63,11 +65,45 @@ export class ZoomController {
     status: 401,
     description: 'Unauthorized - Invalid webhook signature',
   })
-  handleZoomWebhook(@Body() input: ZoomWebhookDto) {
-    this.logger.log(`Received webhook: ${input.event}`);
+  async handleWebhook(
+    @Body() input: any,
+    @Headers() headers: Record<string, string>,
+    @Req() req: Request,
+  ) {
+    this.logger.log(`Zoom webhook request - Event: ${input.event}`);
+    console.log('Zoom webhook request');
+    console.log(JSON.stringify(input));
 
-    // Verify webhook signature (important for production)
-    const isValid = this.zoomService.verifyWebhookSignature();
+    // For URL validation events, handle immediately without signature verification
+    if (input.event === 'endpoint.url_validation') {
+      this.logger.log('Handling URL validation event');
+      return this.zoomService.handleWebhook({ webhookData: input });
+    }
+
+    // Verify webhook signature for all other events (important for production)
+    const signature =
+      headers['x-zm-signature'] || headers['x-zm-signature'.toLowerCase()];
+    const timestamp =
+      headers['x-zm-request-timestamp'] ||
+      headers['x-zm-request-timestamp'.toLowerCase()];
+
+    // Get raw body for signature verification
+    // Try to get raw body from request, fallback to stringified parsed body
+    const rawBody = (req as any).rawBody || JSON.stringify(input);
+
+    // Log for debugging
+    if (!(req as any).rawBody) {
+      this.logger.debug(
+        'Raw body not available, using stringified parsed body for signature verification',
+      );
+    }
+
+    const isValid = await this.zoomService.verifyWebhookSignature({
+      signature,
+      timestamp,
+      rawBody,
+      event: input.event,
+    });
 
     if (!isValid) {
       this.logger.warn('Invalid webhook signature');

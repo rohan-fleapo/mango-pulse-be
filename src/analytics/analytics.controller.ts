@@ -8,6 +8,7 @@ import {
   ActivityAnalyticsOutput,
   AiInsightsOutput,
   AnalyticsQueryDto,
+  GetEngagementLeaderboardOutput,
   MeetingDetailsAnalyticsOutput,
   MeetViewPercentageGraphOutput,
 } from './dto';
@@ -76,5 +77,15 @@ export class AnalyticsController {
       meetingId,
       user,
     });
+  }
+
+  @ApiResponse({ type: GetEngagementLeaderboardOutput, isArray: true })
+  @Get('engagement-leaderboard')
+  @UseGuards(JwtAuthGuard)
+  async getEngagementLeaderboard(
+    @CurrentUser() user: UserDto,
+    @Query() query: AnalyticsQueryDto,
+  ): Promise<GetEngagementLeaderboardOutput[]> {
+    return this.analyticsService.getEngagementLeaderboard({ user, query });
   }
 }

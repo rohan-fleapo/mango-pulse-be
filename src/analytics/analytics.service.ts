@@ -10,6 +10,7 @@ import {
   ActivityAnalyticsOutput,
   AiInsightsOutput,
   AnalyticsQueryDto,
+  GetEngagementLeaderboardOutput,
   MeetingDetailsAnalyticsOutput,
   MeetViewPercentageGraphOutput,
 } from './dto';
@@ -394,6 +395,14 @@ export class AnalyticsService {
       };
     }
 
+    const userIds = [...new Set(activities.map((a) => a.user_id))];
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, name')
+      .in('id', userIds);
+
+    const userMap = new Map(users?.map((u) => [u.id, u.name]) ?? []);
+
     const attendeeDurations = new Map<string, number>();
     const joinTimes = new Map<string, number>();
 
@@ -455,7 +464,7 @@ export class AnalyticsService {
     // Participant Durations
     const participantDurations = Array.from(attendeeDurations.entries())
       .map(([id, duration]) => ({
-        name: id, // TODO: Map to actual user name if possible, or use ID for now
+        name: userMap.get(id) ?? id,
         duration: Math.round(duration / 60000),
       }))
       .sort((a, b) => b.duration - a.duration);
@@ -522,5 +531,129 @@ export class AnalyticsService {
     }
 
     return data as MeetViewPercentageGraphOutput[];
+  }
+
+  async getEngagementLeaderboard(input: {
+    user: UserDto;
+    query: AnalyticsQueryDto;
+  }): Promise<GetEngagementLeaderboardOutput[]> {
+    const supabase = this.supabaseService.getAdminClient();
+
+    // Get all meetings created by the user with date filters
+    let meetingsQuery = supabase
+      .from('meetings')
+      .select('id, start_date, end_date, scheduled_end_date')
+      .eq('creator_id', input.user.id);
+
+    if (input.query.startDate) {
+      meetingsQuery = meetingsQuery.gte('start_date', input.query.startDate);
+    }
+
+    if (input.query.endDate) {
+      meetingsQuery = meetingsQuery.lte('start_date', input.query.endDate);
+    }
+
+    const { data: meetings } = await meetingsQuery;
+
+    if (!meetings?.length) {
+      return [];
+    }
+
+    const totalMeetings = meetings.length;
+    const meetingIds = meetings.map((m) => m.id);
+
+    // Get all activities for these meetings
+    const { data: activities } = await supabase
+      .from('meeting_activities')
+      .select('user_id, meeting_id, joining_time, leaving_time')
+      .in('meeting_id', meetingIds);
+
+    if (!activities?.length) {
+      return [];
+    }
+
+    // Build meeting info map
+    const meetingMap = new Map();
+    meetings.forEach((meeting) => {
+      const start = Date.parse(meeting.start_date);
+      const end = Date.parse(meeting.end_date ?? meeting.scheduled_end_date);
+      meetingMap.set(meeting.id, {
+        start,
+        end,
+        duration: end - start,
+      });
+    });
+
+    // Calculate metrics per user
+    const userMetrics = new Map();
+
+    activities.forEach((activity) => {
+      const meetingInfo = meetingMap.get(activity.meeting_id);
+      if (!meetingInfo) return;
+
+      const join = Math.max(
+        meetingInfo.start,
+        Date.parse(activity.joining_time),
+      );
+      const leave = Math.min(
+        meetingInfo.end,
+        activity.leaving_time
+          ? Date.parse(activity.leaving_time)
+          : meetingInfo.end,
+      );
+
+      if (leave > join) {
+        const duration = leave - join;
+
+        if (!userMetrics.has(activity.user_id)) {
+          userMetrics.set(activity.user_id, {
+            totalDuration: 0,
+            meetingsAttended: new Set(),
+            totalMeetingDuration: 0,
+          });
+        }
+
+        const metrics = userMetrics.get(activity.user_id);
+        metrics.totalDuration += duration;
+        metrics.meetingsAttended.add(activity.meeting_id);
+        metrics.totalMeetingDuration += meetingInfo.duration;
+      }
+    });
+
+    // Get user names
+    const userIds = Array.from(userMetrics.keys());
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, name')
+      .in('id', userIds);
+
+    const userMap = new Map();
+    users?.forEach((u) => userMap.set(u.id, u.name));
+
+    // Calculate engagement scores
+    const engagingUsers = [];
+
+    userMetrics.forEach((metrics, userId) => {
+      const avgDurationPerMeeting =
+        metrics.totalDuration / metrics.meetingsAttended.size;
+      const avgMeetingDuration =
+        metrics.totalMeetingDuration / metrics.meetingsAttended.size;
+
+      const durationScore =
+        avgMeetingDuration > 0 ? avgDurationPerMeeting / avgMeetingDuration : 0;
+      const attendanceScore = metrics.meetingsAttended.size / totalMeetings;
+      const engagementScore = durationScore * 0.5 + attendanceScore * 0.5;
+
+      engagingUsers.push({
+        userId,
+        userName: userMap.get(userId) ?? userId,
+        engagementScore: Number((engagementScore * 100).toFixed(2)),
+        totalMeetingsAttended: metrics.meetingsAttended.size,
+      });
+    });
+
+    return engagingUsers
+      .sort((a, b) => b.engagementScore - a.engagementScore)
+      .slice(0, 5);
   }
 }

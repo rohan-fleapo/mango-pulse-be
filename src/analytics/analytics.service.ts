@@ -394,6 +394,14 @@ export class AnalyticsService {
       };
     }
 
+    const userIds = [...new Set(activities.map((a) => a.user_id))];
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, name')
+      .in('id', userIds);
+
+    const userMap = new Map(users?.map((u) => [u.id, u.name]) ?? []);
+
     const attendeeDurations = new Map<string, number>();
     const joinTimes = new Map<string, number>();
 
@@ -455,7 +463,7 @@ export class AnalyticsService {
     // Participant Durations
     const participantDurations = Array.from(attendeeDurations.entries())
       .map(([id, duration]) => ({
-        name: id, // TODO: Map to actual user name if possible, or use ID for now
+        name: userMap.get(id) ?? id,
         duration: Math.round(duration / 60000),
       }))
       .sort((a, b) => b.duration - a.duration);

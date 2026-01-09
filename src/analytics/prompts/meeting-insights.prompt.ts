@@ -14,7 +14,7 @@ Generate a JSON response with exactly this structure:
   "communityInsights": [
     "string with insight about attendance rate",
     "string with insight about average session duration",
-    "string with insight about consistent attendees",
+    "string with insight about consistent count",
     "string with insight about community size"
   ],
   "recommendations": [

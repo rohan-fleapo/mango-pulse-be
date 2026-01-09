@@ -26,10 +26,10 @@ export class GetMeetingDetailOutput {
   duration: number;
 
   @ApiProperty({
-    description: 'Number of attendees',
+    description: 'Number of count',
     example: 10,
   })
-  attendees: number;
+  count: number;
 
   @ApiProperty({
     description: 'Attendance list (simplified)',

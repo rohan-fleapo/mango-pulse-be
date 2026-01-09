@@ -337,7 +337,7 @@ export class MeetingsService {
       .select('*')
       .eq('meeting_id', id);
 
-    const { count: attendeesCount } = await this.supabaseAdmin
+    const { count: countCount } = await this.supabaseAdmin
       .from('meeting_activities')
       .select('*', { count: 'exact', head: true })
       .eq('meeting_id', id);
@@ -353,9 +353,9 @@ export class MeetingsService {
       title: meeting.topic || 'Untitled Meeting',
       date: meeting.start_date,
       duration: duration || 0,
-      attendees: attendeesCount || 0,
+      count: countCount || 0,
       attendance: [], // Will be populated by analytics API for chart data? Or should we populate it here?
-      // Frontend expects: { id, title, date, duration, attendees, attendance: [] }
+      // Frontend expects: { id, title, date, duration, count, attendance: [] }
       // But attendance array in frontend mock has duration/joinedAt etc.
       // The new analytics API will provide detailed attendance.
       // For now, let's keep it simple here.

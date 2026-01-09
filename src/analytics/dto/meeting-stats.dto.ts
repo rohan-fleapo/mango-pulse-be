@@ -40,10 +40,10 @@ export class MeetingTimelineItem {
   date: string;
 
   @ApiProperty({
-    description: 'Number of attendees',
+    description: 'Number of meetings on that date',
     example: 2,
   })
-  attendees: number;
+  count: number;
 }
 
 export class GetMeetingsStatsOutput {

@@ -51,6 +51,16 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+      - name: Parse environment variables
+        id: parse-env
+        run: |
+          # Parse the JSON array of environment variables and convert to KEY=VALUE format
+          ENV_VARS=$(echo '${{ secrets.ENV_VARS }}' | jq -r '.[] | "\(.key)=\(.value)"')
+          # Use delimiter for multiline output
+          echo "env_vars<<EOF" >> $GITHUB_OUTPUT
+          echo "$ENV_VARS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -58,20 +68,7 @@ jobs:
           task-definition: ${{ env.ECS_TASK_DEFINITION }}
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build-image.outputs.image }}
-          environment-variables: |
-            NODE_ENV=production
-            PORT=8000
-            TZ=UTC
-            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
-            ZOOM_ACCOUNT_ID=${{ secrets.ZOOM_ACCOUNT_ID }}
-            ZOOM_CLIENT_ID=${{ secrets.ZOOM_CLIENT_ID }}
-            ZOOM_CLIENT_SECRET=${{ secrets.ZOOM_CLIENT_SECRET }}
-            ZOOM_API_BASE_URL=${{ secrets.ZOOM_API_BASE_URL }}
-            ZOOM_AUTH_URL=${{ secrets.ZOOM_AUTH_URL }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
+          environment-variables: ${{ steps.parse-env.outputs.env_vars }}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

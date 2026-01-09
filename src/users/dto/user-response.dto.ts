@@ -41,6 +41,14 @@ export class UserResponseDto {
   })
   role: Tables<'users'>['role'];
 
+  @ApiPropertyOptional({
+    description: 'Whether the user has completed onboarding',
+    example: false,
+    default: false,
+    nullable: true,
+  })
+  isOnboarded: boolean | null;
+
   @ApiProperty({
     description: 'Account creation timestamp',
     example: '2026-01-08T10:00:00.000Z',

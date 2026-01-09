@@ -8,6 +8,7 @@ export interface JwtPayload {
   email: string;
   role: 'member' | 'creator';
   creatorId: string;
+  isOnboarded: boolean | null;
 }
 
 @Injectable()
@@ -43,6 +44,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       role: payload.role,
       creatorId: payload.creatorId,
+      isOnboarded: payload.isOnboarded,
     };
 
     console.log('✅ JWT validation successful, returning user:', user);

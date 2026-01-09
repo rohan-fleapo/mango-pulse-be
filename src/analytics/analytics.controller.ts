@@ -8,6 +8,7 @@ import {
   ActivityAnalyticsOutput,
   AiInsightsOutput,
   AnalyticsQueryDto,
+  MeetingDetailsAnalyticsOutput,
 } from './dto';
 import { GetMeetingsStatsOutput } from './dto/meeting-stats.dto';
 
@@ -46,5 +47,18 @@ export class AnalyticsController {
     @CurrentUser() user: UserDto,
   ): Promise<ActivityAnalyticsOutput> {
     return this.analyticsService.getActivityAnalytics({ meetingId, user });
+  }
+
+  @ApiResponse({ type: MeetingDetailsAnalyticsOutput })
+  @Get('meeting/:meetingId/details')
+  @Roles('creator')
+  async getMeetingAnalyticsDetails(
+    @Param('meetingId') meetingId: string,
+    @CurrentUser() user: UserDto,
+  ): Promise<MeetingDetailsAnalyticsOutput> {
+    return this.analyticsService.getMeetingAnalyticsDetails({
+      meetingId,
+      user,
+    });
   }
 }

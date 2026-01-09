@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { SupabaseClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -28,7 +27,7 @@ export class SchedulerService {
    * Cron job that runs every minute
    * Checks for meetings starting in the next hour
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  // @Cron(CronExpression.EVERY_MINUTE)
   async checkUpcomingMeetings() {
     this.logger.log('Checking for meetings in the next hour...');
 
@@ -74,7 +73,14 @@ export class SchedulerService {
   /**
    * Process a meeting and send notifications to all engaged users
    */
-  private async processMeetingForNotification(meeting: any) {
+  async processMeetingForNotification(meeting: {
+    creator_id?: string;
+    id?: string;
+    meeting_id?: string;
+    topic?: string;
+    user_email?: string;
+    start_date?: string;
+  }) {
     try {
       // Get creator details
       const { data: creator, error: creatorError } = await this.supabaseAdmin

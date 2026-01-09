@@ -76,7 +76,7 @@ export class WhatsAppController {
   @ApiOperation({ summary: 'Receive WhatsApp webhook events' })
   @ApiBody({ type: WhatsAppWebhookInput })
   @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
-  async handleWebhook(@Body() body: any): Promise<{ status: string }> {
+  async handleWhatsappWebhook(@Body() body: any): Promise<{ status: string }> {
     this.logger.log('Webhook event received');
     console.log(JSON.stringify(body));
     return this.whatsAppService.handleWebhook(body as WhatsAppWebhookInput);

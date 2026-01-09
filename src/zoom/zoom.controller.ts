@@ -63,7 +63,7 @@ export class ZoomController {
     status: 401,
     description: 'Unauthorized - Invalid webhook signature',
   })
-  handleWebhook(@Body() input: ZoomWebhookDto) {
+  handleZoomWebhook(@Body() input: ZoomWebhookDto) {
     this.logger.log(`Received webhook: ${input.event}`);
 
     // Verify webhook signature (important for production)
@@ -161,7 +161,7 @@ export class ZoomController {
     status: 500,
     description: 'Internal server error - Failed to create meeting in Zoom',
   })
-  async createMeeting(
+  async createZoomMeeting(
     @Body() createMeetingDto: CreateZoomMeetingDto,
   ): Promise<ZoomCreateMeetingResponseDto> {
     return this.zoomService.createMeeting(createMeetingDto);
@@ -202,7 +202,7 @@ export class ZoomController {
     status: 500,
     description: 'Internal server error - Failed to update meeting in Zoom',
   })
-  async updateMeeting(
+  async updateZoomMeeting(
     @Param('meetingId') meetingId: number,
     @Body() updateMeetingDto: UpdateZoomMeetingDto,
   ): Promise<string> {
@@ -238,7 +238,9 @@ export class ZoomController {
     status: 500,
     description: 'Internal server error - Failed to delete meeting in Zoom',
   })
-  async deleteMeeting(@Param('meetingId') meetingId: number): Promise<void> {
+  async deleteZoomMeeting(
+    @Param('meetingId') meetingId: number,
+  ): Promise<void> {
     return this.zoomService.deleteMeeting(meetingId);
   }
 

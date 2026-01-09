@@ -10,6 +10,7 @@ import {
   ActivityAnalyticsOutput,
   AiInsightsOutput,
   AnalyticsQueryDto,
+  MeetingDetailsAnalyticsOutput,
 } from './dto';
 import {
   GetMeetingsStatsOutput,
@@ -32,7 +33,8 @@ export class AnalyticsService {
     const { data: members } = await supabase
       .from('users')
       .select('creator_id')
-      .eq('creator_id', user.id);
+      .eq('creator_id', user.id)
+      .eq('role', 'member');
 
     let meetingsQuery = supabase
       .from('meetings')
@@ -333,6 +335,159 @@ export class AnalyticsService {
       averageViewedPercentage: Number(
         ((viewedSum / attendeeCount) * 100).toFixed(2),
       ),
+    };
+  }
+
+  async getMeetingAnalyticsDetails(input: {
+    meetingId: string;
+    user: UserDto;
+  }): Promise<MeetingDetailsAnalyticsOutput> {
+    const supabase = this.supabaseService.getAdminClient();
+
+    const { data: meeting } = await supabase
+      .from('meetings')
+      .select('start_date, end_date, scheduled_end_date, creator_id')
+      .eq('id', input.meetingId)
+      .single()
+      .throwOnError();
+
+    if (!meeting) {
+      throw new NotFoundException('Meeting not found');
+    }
+
+    // Authorization check
+    // if (meeting.creator_id !== input.user.id) {
+    //   throw new ForbiddenException(
+    //     'You are not authorized to view analytics for this meeting',
+    //   );
+    // }
+
+    const meetingStart = Date.parse(meeting.start_date);
+    const meetingEnd = Date.parse(
+      meeting.end_date ?? meeting.scheduled_end_date,
+    );
+    const meetingDurationMs = meetingEnd - meetingStart;
+
+    const [{ count: totalInvited }, { data: activities }] = await Promise.all([
+      supabase
+        .from('meeting_engagements')
+        .select('*', { count: 'exact', head: true })
+        .eq('meeting_id', input.meetingId)
+        .throwOnError(),
+
+      supabase
+        .from('meeting_activities')
+        .select('user_id, joining_time, leaving_time')
+        .eq('meeting_id', input.meetingId)
+        .throwOnError(),
+    ]);
+
+    if (!activities?.length) {
+      return {
+        attendanceRate: 0,
+        avgDuration: 0,
+        engagementScore: 0,
+        attendanceOverTime: [],
+        engagementDistribution: [],
+        participantDurations: [],
+        joinTimeDistribution: [],
+      };
+    }
+
+    const attendeeDurations = new Map<string, number>();
+    const joinTimes = new Map<string, number>();
+
+    activities.forEach((a) => {
+      const join = Math.max(meetingStart, Date.parse(a.joining_time));
+      const leave = Math.min(
+        meetingEnd,
+        a.leaving_time ? Date.parse(a.leaving_time) : meetingEnd,
+      );
+
+      if (leave > join) {
+        attendeeDurations.set(
+          a.user_id,
+          (attendeeDurations.get(a.user_id) ?? 0) + (leave - join),
+        );
+      }
+
+      const actualJoinTime = Date.parse(a.joining_time);
+      if (
+        !joinTimes.has(a.user_id) ||
+        actualJoinTime < joinTimes.get(a.user_id)!
+      ) {
+        joinTimes.set(a.user_id, actualJoinTime);
+      }
+    });
+
+    const attendeeCount = attendeeDurations.size;
+    const totalDuration = Array.from(attendeeDurations.values()).reduce(
+      (a, b) => a + b,
+      0,
+    );
+    const avgDurationMs = attendeeCount > 0 ? totalDuration / attendeeCount : 0;
+    const avgDurationMinutes = avgDurationMs / 60000;
+
+    // Engagement Distribution
+    let high = 0,
+      medium = 0,
+      low = 0;
+    attendeeDurations.forEach((d) => {
+      if (d >= avgDurationMs * 0.9) high++;
+      else if (d >= avgDurationMs * 0.6) medium++;
+      else low++;
+    });
+
+    // Attendance Over Time
+    const attendanceOverTime = [];
+    const interval = 5 * 60 * 1000; // 5 minutes
+    for (let t = meetingStart; t <= meetingEnd; t += interval) {
+      const timeOffset = Math.round((t - meetingStart) / 60000);
+      let count = 0;
+      activities.forEach((a) => {
+        const join = Date.parse(a.joining_time);
+        const leave = a.leaving_time ? Date.parse(a.leaving_time) : meetingEnd;
+        if (join <= t && leave >= t) count++;
+      });
+      attendanceOverTime.push({ time: `${timeOffset}m`, count });
+    }
+
+    // Participant Durations
+    const participantDurations = Array.from(attendeeDurations.entries())
+      .map(([id, duration]) => ({
+        name: id, // TODO: Map to actual user name if possible, or use ID for now
+        duration: Math.round(duration / 60000),
+      }))
+      .sort((a, b) => b.duration - a.duration);
+
+    // Join Time Distribution
+    const bucketSize = 5 * 60 * 1000;
+    const joinTimeBuckets = new Map<number, number>();
+    joinTimes.forEach((time) => {
+      const diff = Math.max(0, time - meetingStart);
+      const bucket = Math.floor(diff / bucketSize) * 5;
+      joinTimeBuckets.set(bucket, (joinTimeBuckets.get(bucket) || 0) + 1);
+    });
+    const joinTimeDistribution = Array.from(joinTimeBuckets.entries())
+      .map(([time, count]) => ({ time, count }))
+      .sort((a, b) => a.time - b.time);
+
+    return {
+      attendanceRate: totalInvited
+        ? Number(((attendeeCount / totalInvited) * 100).toFixed(2))
+        : 0,
+      avgDuration: Math.round(avgDurationMinutes),
+      engagementScore: meetingDurationMs
+        ? Math.round((avgDurationMs / meetingDurationMs) * 100)
+        : 0,
+      attendanceOverTime,
+      engagementDistribution: [
+        { name: 'High Engagement', value: high, color: '#22c55e' },
+        { name: 'Medium Engagement', value: medium, color: '#f59e0b' },
+        { name: 'Low Engagement', value: low, color: '#ef4444' },
+      ],
+      participantDurations: participantDurations.slice(0, 10), // Top 10
+      joinTimeDistribution,
     };
   }
 }

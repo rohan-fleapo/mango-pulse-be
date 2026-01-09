@@ -1,11 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsDateString,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateMeetingInput {
   @ApiProperty({
@@ -28,15 +22,6 @@ export class CreateMeetingInput {
   })
   @IsNumber()
   duration: number;
-
-  @ApiProperty({
-    description: 'Array of invitee email addresses',
-    example: ['user1@example.com', 'user2@example.com'],
-    type: [String],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  invitees: string[];
 
   @ApiPropertyOptional({
     description: 'Creator user ID',

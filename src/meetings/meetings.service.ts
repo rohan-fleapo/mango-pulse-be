@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
+import { SchedulerService } from 'src/scheduler/scheduler.service';
 import { SupabaseService } from 'src/supabase/supabase.service';
 import { CreateZoomMeetingDto, UpdateZoomMeetingDto } from 'src/zoom/dto';
 import { ZoomService } from 'src/zoom/zoom.service';
@@ -25,20 +26,30 @@ export class MeetingsService {
   constructor(
     private readonly zoomService: ZoomService,
     private readonly supabaseService: SupabaseService,
+    private readonly schedulerService: SchedulerService,
   ) {
     this.supabaseAdmin = this.supabaseService.getAdminClient();
   }
 
   async createMeeting(input: CreateMeetingInput): Promise<CreateMeetingOutput> {
-    const { topic, startTime, duration, invitees, creatorId } = input;
+    const { topic, startTime, duration, creatorId } = input;
 
-    let validatedUsers: Array<{ id: string; email: string }> | null = null;
-    if (invitees && invitees.length > 0) {
-      if (!creatorId) {
-        throw new Error('Creator ID is required to create meeting engagements');
-      }
-      validatedUsers = await this.validateInvitees(invitees, creatorId);
-    }
+    const validatedUsers = await this.supabaseAdmin
+      .from('users')
+      .select('id, email')
+      .eq('creator_id', creatorId)
+      .eq('role', 'member')
+      .then(({ data, error }) => {
+        if (error) {
+          this.logger.error(
+            `Failed to fetch users for creator ${creatorId}: ${error.message}`,
+          );
+          throw new Error(
+            `Failed to fetch users for creator ${creatorId}: ${error.message}`,
+          );
+        }
+        return data as Array<{ id: string; email: string }>;
+      });
 
     // 2. Create Meeting in Zoom
     const zoomPayload: CreateZoomMeetingDto = {
@@ -95,6 +106,14 @@ export class MeetingsService {
         meetingId,
         validatedUsers,
       });
+    }
+
+    // if the start of the meeting in less than one hour, send notification immediately
+    if (startObj.getTime() - Date.now() < 60 * 60 * 1000) {
+      this.logger.log(
+        `Meeting is starting in less than one hour, sending notifications immediately...`,
+      );
+      await this.schedulerService.processMeetingForNotification(meetingData);
     }
 
     return {
@@ -298,6 +317,48 @@ export class MeetingsService {
     return {
       success: true,
       meetingId,
+    };
+  }
+
+  async getMeeting(id: string) {
+    const { data: meeting, error } = await this.supabaseAdmin
+      .from('meetings')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !meeting) {
+      throw new NotFoundException(`Meeting with ID ${id} not found`);
+    }
+
+    // Get engagements
+    const { data: engagements } = await this.supabaseAdmin
+      .from('meeting_engagements')
+      .select('*')
+      .eq('meeting_id', id);
+
+    const { count: attendeesCount } = await this.supabaseAdmin
+      .from('meeting_activities')
+      .select('*', { count: 'exact', head: true })
+      .eq('meeting_id', id);
+
+    const startTime = new Date(meeting.start_date).getTime();
+    const endTime = new Date(
+      meeting.end_date || meeting.scheduled_end_date,
+    ).getTime();
+    const duration = Math.round((endTime - startTime) / 60000);
+
+    return {
+      id: meeting.id,
+      title: meeting.topic || 'Untitled Meeting',
+      date: meeting.start_date,
+      duration: duration || 0,
+      attendees: attendeesCount || 0,
+      attendance: [], // Will be populated by analytics API for chart data? Or should we populate it here?
+      // Frontend expects: { id, title, date, duration, attendees, attendance: [] }
+      // But attendance array in frontend mock has duration/joinedAt etc.
+      // The new analytics API will provide detailed attendance.
+      // For now, let's keep it simple here.
     };
   }
 

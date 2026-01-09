@@ -46,8 +46,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       creatorId: payload.creatorId,
       isOnboarded: payload.isOnboarded,
     };
-
-    console.log('✅ JWT validation successful, returning user:', user);
     return user;
   }
 }

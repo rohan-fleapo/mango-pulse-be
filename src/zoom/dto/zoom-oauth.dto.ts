@@ -281,6 +281,11 @@ class ZoomMeetingSettingsDto {
   @IsOptional()
   @IsBoolean()
   meeting_authentication?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  waiting_room?: boolean;
 }
 
 export class CreateZoomMeetingDto {
@@ -306,6 +311,10 @@ export class CreateZoomMeetingDto {
   @ApiProperty({ example: 'UTC' })
   @IsString()
   timezone: string;
+
+  @ApiProperty()
+  @IsString()
+  password: string;
 
   @ApiPropertyOptional({ type: ZoomMeetingSettingsDto })
   @IsOptional()

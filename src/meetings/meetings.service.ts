@@ -149,15 +149,17 @@ export class MeetingsService {
       duration,
       type: 2, // Scheduled
       timezone: 'UTC',
+      password: 'vadhjvfvsd',
       settings: {
         host_video: true,
         participant_video: true,
-        join_before_host: false,
+        join_before_host: true,
         mute_upon_entry: true,
         auto_recording: 'cloud',
         approval_type: 0,
         registration_type: 1,
         meeting_authentication: true,
+        waiting_room: false,
       },
     };
 
@@ -335,7 +337,7 @@ export class MeetingsService {
           duration ||
           (new Date(meetingTyped.scheduled_end_date).getTime() -
             new Date(meetingTyped.start_date).getTime()) /
-            60000;
+          60000;
         updateDbData.scheduled_end_date = new Date(
           new Date(startTime).getTime() + durationInMinutes * 60000,
         ).toISOString();

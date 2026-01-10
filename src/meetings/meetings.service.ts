@@ -142,6 +142,20 @@ export class MeetingsService {
       }
     }
 
+    // Get creator's email to add as invitee
+    const { data: creator, error: creatorError } = await this.supabaseAdmin
+      .from('users')
+      .select('email')
+      .eq('id', creatorId)
+      .eq('role', 'creator')
+      .single();
+
+    if (creatorError || !creator) {
+      this.logger.warn(
+        `Failed to fetch creator email for ${creatorId}: ${creatorError?.message || 'Creator not found'}`,
+      );
+    }
+
     // 2. Create Meeting in Zoom
     const zoomPayload: CreateZoomMeetingDto = {
       topic,
@@ -160,6 +174,10 @@ export class MeetingsService {
         registration_type: 1,
         meeting_authentication: true,
         waiting_room: false,
+        // Add creator's email as invitee if available
+        ...(creator?.email && {
+          meeting_invitees: [{ email: creator.email }],
+        }),
       },
     };
 

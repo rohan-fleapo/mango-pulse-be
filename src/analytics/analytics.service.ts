@@ -663,4 +663,106 @@ export class AnalyticsService {
       .sort((a, b) => b.engagementScore - a.engagementScore)
       .slice(0, 5);
   }
+
+  async getEngagementTrend(input: {
+    user: UserDto;
+    query: AnalyticsQueryDto;
+  }) {
+    const supabase = this.supabaseService.getAdminClient();
+
+    // Fetch meetings in range
+    let meetingsQuery = supabase
+      .from('meetings')
+      .select('id, start_date, end_date, scheduled_end_date')
+      .eq('creator_id', input.user.id);
+
+    if (input.query.startDate) {
+      meetingsQuery = meetingsQuery.gte('start_date', input.query.startDate);
+    }
+    if (input.query.endDate) {
+      meetingsQuery = meetingsQuery.lte('start_date', input.query.endDate);
+    }
+
+    const { data: meetings } = await meetingsQuery;
+    if (!meetings?.length) return [];
+
+    const meetingIds = meetings.map((m) => m.id);
+
+    // Get invite counts per meeting
+    const { data: invites } = await supabase
+      .from('meeting_engagements')
+      .select('meeting_id, id')
+      .in('meeting_id', meetingIds);
+
+    // Get activities to compute viewed percentage per meeting
+    const { data: activities } = await supabase
+      .from('meeting_activities')
+      .select('meeting_id, user_id, joining_time, leaving_time')
+      .in('meeting_id', meetingIds);
+
+    const invitesByMeeting = new Map<string, number>();
+    invites?.forEach((i) => {
+      invitesByMeeting.set(
+        i.meeting_id,
+        (invitesByMeeting.get(i.meeting_id) || 0) + 1,
+      );
+    });
+
+    const activitiesByMeeting = new Map<string, any[]>();
+    activities?.forEach((a) => {
+      const arr = activitiesByMeeting.get(a.meeting_id) || [];
+      arr.push(a);
+      activitiesByMeeting.set(a.meeting_id, arr);
+    });
+
+    const points = meetings
+      .map((m) => {
+        const start = Date.parse(m.start_date);
+        const end = Date.parse(m.end_date ?? m.scheduled_end_date);
+        const duration = Math.max(0, end - start);
+        const date = m.start_date.split('T')[0];
+
+        const acts = activitiesByMeeting.get(m.id) || [];
+        const inviteCount = invitesByMeeting.get(m.id) || 0;
+
+        // Compute attendance and viewed percentage
+        const durations = new Map<string, number>();
+        acts.forEach((a) => {
+          const join = Math.max(start, Date.parse(a.joining_time));
+          const leave = Math.min(
+            end,
+            a.leaving_time ? Date.parse(a.leaving_time) : end,
+          );
+          if (leave > join) {
+            durations.set(a.user_id, (durations.get(a.user_id) || 0) + (leave - join));
+          }
+        });
+
+        const attendees = durations.size;
+        const attendanceRate = inviteCount
+          ? Number(((attendees / inviteCount) * 100).toFixed(2))
+          : 0;
+
+        let viewedSum = 0;
+        durations.forEach((ms) => {
+          viewedSum += duration > 0 ? Math.min(1, ms / duration) : 0;
+        });
+        const averageViewedPercentage = attendees
+          ? Number(((viewedSum / attendees) * 100).toFixed(2))
+          : 0;
+
+        return {
+          meetingId: m.id,
+          date,
+          attendanceRate,
+          averageViewedPercentage,
+          attendees,
+          invited: inviteCount,
+        };
+      })
+      // sort by date ascending
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+    return points;
+  }
 }

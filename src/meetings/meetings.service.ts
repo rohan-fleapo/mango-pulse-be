@@ -172,7 +172,7 @@ export class MeetingsService {
         auto_recording: 'cloud',
         approval_type: 0,
         registration_type: 1,
-        meeting_authentication: true,
+        meeting_authentication: false,
         waiting_room: false,
         // Add creator's email as invitee if available
         ...(creator?.email && {

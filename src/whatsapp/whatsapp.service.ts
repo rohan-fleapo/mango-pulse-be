@@ -786,6 +786,52 @@ export class WhatsAppService {
     userId: string,
   ): Promise<void> {
     try {
+      // Get the meeting to find creator_id
+      const { data: meeting, error: meetingError } = await this.supabaseAdmin
+        .from('meetings')
+        .select('creator_id')
+        .eq('id', meetingId)
+        .single();
+
+      if (meetingError || !meeting) {
+        this.logger.warn(
+          `Meeting ${meetingId} not found, skipping next event nudge`,
+        );
+        return;
+      }
+
+      if (!meeting.creator_id) {
+        this.logger.debug(
+          `Meeting ${meetingId} has no creator_id, skipping next event nudge`,
+        );
+        return;
+      }
+
+      // Check if there are any future meetings for this creator
+      const currentTime = new Date().toISOString();
+      const { data: futureMeetings, error: futureMeetingsError } =
+        await this.supabaseAdmin
+          .from('meetings')
+          .select('id')
+          .eq('creator_id', meeting.creator_id)
+          .gt('start_date', currentTime)
+          .limit(1);
+
+      if (futureMeetingsError) {
+        this.logger.error(
+          `Error checking for future meetings: ${futureMeetingsError.message}`,
+        );
+        return;
+      }
+
+      if (!futureMeetings || futureMeetings.length === 0) {
+        this.logger.debug(
+          `No future meetings found for creator ${meeting.creator_id}, skipping next event nudge`,
+        );
+        return;
+      }
+
+      // Send the nudge message only if future meetings exist
       const buttonIdPrefix = `${meetingId}:${userId}`;
       const message = {
         messaging_product: 'whatsapp',
@@ -819,7 +865,7 @@ export class WhatsAppService {
 
       await this.axiosInstance.post(`/${this.phoneNumberId}/messages`, message);
       this.logger.log(
-        `Sent next event nudge message to ${to} for meeting ${meetingId}`,
+        `Sent next event nudge message to ${to} for meeting ${meetingId} (future meetings exist)`,
       );
     } catch (error: any) {
       this.logger.error(

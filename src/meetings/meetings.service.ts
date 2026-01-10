@@ -35,7 +35,8 @@ export class MeetingsService {
   async createMeeting(input: CreateMeetingInput): Promise<CreateMeetingOutput> {
     const { topic, startTime, duration, creatorId } = input;
 
-    const validatedUsers = await this.supabaseAdmin
+    // Get all users for the creator
+    const allUsers = await this.supabaseAdmin
       .from('users')
       .select('id, email')
       .eq('creator_id', creatorId)
@@ -51,6 +52,95 @@ export class MeetingsService {
         }
         return data as Array<{ id: string; email: string }>;
       });
+
+    // Find the last meeting created by this creator (before current meeting start time)
+    // Use created_at to get the most recently created meeting
+    const { data: lastMeeting, error: lastMeetingError } =
+      await this.supabaseAdmin
+        .from('meetings')
+        .select('id, start_date')
+        .eq('creator_id', creatorId)
+        .lt('start_date', startTime)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    let validatedUsers: Array<{ id: string; email: string }> = [];
+
+    if (lastMeetingError && lastMeetingError.code !== 'PGRST116') {
+      // Error other than "not found" - log and use all users as fallback
+      this.logger.warn(
+        `Error finding last meeting: ${lastMeetingError.message}. Using all users.`,
+      );
+      validatedUsers = allUsers;
+    } else if (!lastMeeting) {
+      // No previous meeting found - invite all users
+      this.logger.log(
+        `No previous meeting found for creator ${creatorId}. Inviting all users.`,
+      );
+      validatedUsers = allUsers;
+    } else {
+      // Last meeting found - filter users based on feedback
+      this.logger.log(
+        `Found last meeting ${lastMeeting.id} for creator ${creatorId}. Filtering users based on feedback.`,
+      );
+
+      // Get feedback for the last meeting for all users
+      const userIds = allUsers.map((u) => u.id);
+      const { data: feedbacks, error: feedbacksError } =
+        await this.supabaseAdmin
+          .from('meeting_feedbacks')
+          .select('user_id, next_meeting_interested')
+          .eq('meeting_id', lastMeeting.id)
+          .in('user_id', userIds);
+
+      if (feedbacksError) {
+        this.logger.warn(
+          `Error fetching feedbacks: ${feedbacksError.message}. Using all users.`,
+        );
+        validatedUsers = allUsers;
+      } else {
+        // Create a map of user_id -> feedback
+        const feedbackMap = new Map<
+          string,
+          'yes' | 'no' | 'maybe' | 'no-response'
+        >();
+        feedbacks?.forEach((feedback) => {
+          feedbackMap.set(feedback.user_id, feedback.next_meeting_interested);
+        });
+
+        // Filter users: include if feedback is 'yes' or no feedback found
+        validatedUsers = allUsers.filter((user) => {
+          const feedback = feedbackMap.get(user.id);
+
+          if (!feedback) {
+            // No feedback found - invite by default
+            this.logger.debug(
+              `User ${user.email} has no feedback for last meeting. Including in invite.`,
+            );
+            return true;
+          }
+
+          if (feedback === 'yes') {
+            // User said yes to next meeting - invite them
+            this.logger.debug(
+              `User ${user.email} said yes to next meeting. Including in invite.`,
+            );
+            return true;
+          }
+
+          // User said 'no', 'maybe', or 'no-response' - exclude them
+          this.logger.debug(
+            `User ${user.email} has feedback '${feedback}' for last meeting. Excluding from invite.`,
+          );
+          return false;
+        });
+
+        this.logger.log(
+          `Filtered users: ${allUsers.length} total, ${validatedUsers.length} invited based on feedback`,
+        );
+      }
+    }
 
     // 2. Create Meeting in Zoom
     const zoomPayload: CreateZoomMeetingDto = {

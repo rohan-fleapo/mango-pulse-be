@@ -665,7 +665,7 @@ export class WhatsAppService {
     }
   }
 
-  //test
+  //test nn
   /**
    * Send rating survey message after meeting ends
    * @param to Phone number (without + prefix)

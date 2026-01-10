@@ -32,10 +32,11 @@ export class AnalyticsService {
     const { user, query } = input;
     const supabase = this.supabaseService.getAdminClient();
 
-    const { data: members } = await supabase
+    const { count } = await supabase
       .from('users')
-      .select('creator_id')
-      .eq('creator_id', user.id);
+      .select('id', { count: 'exact', head: true })
+      .eq('creator_id', user.id)
+      .neq('id', user.id);
 
     let meetingsQuery = supabase
       .from('meetings')
@@ -85,7 +86,7 @@ export class AnalyticsService {
     const timeline = await this.getMeetingsTimeline(user, query);
 
     return {
-      totalMembers: members?.length ?? 0,
+      totalMembers: count,
       totalMeetings: meetings?.length ?? 0,
       avgEngagementRate: parseFloat(avgEngagementRate.toFixed(2)),
       durationBreakdown,
@@ -596,6 +597,7 @@ export class AnalyticsService {
         meetingInfo.start,
         Date.parse(activity.joining_time),
       );
+
       const leave = Math.min(
         meetingInfo.end,
         activity.leaving_time
@@ -615,9 +617,13 @@ export class AnalyticsService {
         }
 
         const metrics = userMetrics.get(activity.user_id);
+
         metrics.totalDuration += duration;
-        metrics.meetingsAttended.add(activity.meeting_id);
-        metrics.totalMeetingDuration += meetingInfo.duration;
+
+        if (!metrics.meetingsAttended.has(activity.meeting_id)) {
+          metrics.totalMeetingDuration += meetingInfo.duration;
+          metrics.meetingsAttended.add(activity.meeting_id);
+        }
       }
     });
 

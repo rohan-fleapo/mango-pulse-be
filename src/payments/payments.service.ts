@@ -152,4 +152,29 @@ export class PaymentsService {
       throw new BadRequestException('Invalid payment signature');
     }
   }
+
+  async getSubscriptionDetails(subscriptionId: string) {
+    const user = await this.usersService.getUserBySubscription(subscriptionId);
+
+    if (!user) {
+      throw new BadRequestException('No user found with this subscription ID');
+    }
+
+    try {
+      const subscription =
+        await this.razorpay.subscriptions.fetch(subscriptionId);
+
+      let plan = null;
+      if (subscription.plan_id) {
+        plan = await this.razorpay.plans.fetch(subscription.plan_id);
+      }
+
+      return { ...subscription, plan_details: plan };
+    } catch (error) {
+      console.error('Error fetching subscription from Razorpay:', error);
+      throw new BadRequestException(
+        'Failed to fetch subscription details from Razorpay',
+      );
+    }
+  }
 }

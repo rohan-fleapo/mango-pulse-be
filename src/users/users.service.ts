@@ -288,6 +288,20 @@ export class UsersService {
     return { message: 'User deleted successfully' };
   }
 
+  async getUserBySubscription(subscriptionId: string) {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('subscription_id', subscriptionId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return this.mapUserToResponse(data);
+  }
+
   private async updateCreator(creatorId: string, data: UpdateUserDto) {
     const updateData: Record<string, unknown> = {};
     if (data.tagMangoId !== undefined) {

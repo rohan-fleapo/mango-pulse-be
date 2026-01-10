@@ -11,6 +11,7 @@ import {
   GetEngagementLeaderboardOutput,
   MeetingDetailsAnalyticsOutput,
   MeetViewPercentageGraphOutput,
+  EngagementTrendPoint,
 } from './dto';
 import { GetMeetingsStatsOutput } from './dto/meeting-stats.dto';
 
@@ -87,5 +88,16 @@ export class AnalyticsController {
     @Query() query: AnalyticsQueryDto,
   ): Promise<GetEngagementLeaderboardOutput[]> {
     return this.analyticsService.getEngagementLeaderboard({ user, query });
+  }
+
+  // Engagement trend across meetings over time
+  @ApiResponse({ type: EngagementTrendPoint, isArray: true })
+  @Get('engagement-trend')
+  @Roles('creator')
+  async getEngagementTrend(
+    @CurrentUser() user: UserDto,
+    @Query() query: AnalyticsQueryDto,
+  ): Promise<EngagementTrendPoint[]> {
+    return this.analyticsService.getEngagementTrend({ user, query });
   }
 }

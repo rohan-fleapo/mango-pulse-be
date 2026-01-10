@@ -36,6 +36,7 @@ export class AnalyticsService {
       .from('users')
       .select('id', { count: 'exact', head: true })
       .eq('creator_id', user.id)
+      .is('deleted_at', null)
       .neq('id', user.id);
 
     let meetingsQuery = supabase
@@ -664,10 +665,7 @@ export class AnalyticsService {
       .slice(0, 5);
   }
 
-  async getEngagementTrend(input: {
-    user: UserDto;
-    query: AnalyticsQueryDto;
-  }) {
+  async getEngagementTrend(input: { user: UserDto; query: AnalyticsQueryDto }) {
     const supabase = this.supabaseService.getAdminClient();
 
     // Fetch meetings in range
@@ -734,7 +732,10 @@ export class AnalyticsService {
             a.leaving_time ? Date.parse(a.leaving_time) : end,
           );
           if (leave > join) {
-            durations.set(a.user_id, (durations.get(a.user_id) || 0) + (leave - join));
+            durations.set(
+              a.user_id,
+              (durations.get(a.user_id) || 0) + (leave - join),
+            );
           }
         });
 

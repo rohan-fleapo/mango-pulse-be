@@ -184,6 +184,13 @@ export class ZoomService {
     // Trigger post-meeting workflows (attendance fork logic)
     await this.triggerPostMeetingWorkflows({ meetingData });
 
+    // Release the allocated host by setting meeting_id to NULL
+    await this.releaseHost(meetingIdStr).catch((error) => {
+      this.logger.error(
+        `Failed to release host for meeting ${meetingIdStr}: ${error.message}`,
+      );
+    });
+
     // Cleanup
     this.meetingParticipants.delete(String(object.id));
 
@@ -822,15 +829,108 @@ export class ZoomService {
   }
 
   /**
-   * Create a Zoom meeting
+   * Allocate an available Zoom host for a meeting
+   * Finds a host where meeting_id IS NULL (available) and assigns the meeting_id
+   */
+  async allocateHost(meetingId: string): Promise<{
+    id: number;
+    zoom_user_id: string;
+    email: string;
+  }> {
+    // Find an available host (where meeting_id IS NULL)
+    const { data: availableHosts, error: queryError } = await this.supabaseAdmin
+      .from('zoom_hosts')
+      .select('id, zoom_user_id, email')
+      .is('meeting_id', null)
+      .order('id', { ascending: true })
+      .limit(1);
+
+    if (queryError) {
+      this.logger.error(`Failed to query available hosts: ${queryError.message}`);
+      throw new Error(`Failed to query available hosts: ${queryError.message}`);
+    }
+
+    if (!availableHosts || availableHosts.length === 0) {
+      throw new Error(
+        'No available Zoom hosts. All hosts are currently allocated.',
+      );
+    }
+
+    const host = availableHosts[0];
+
+    // Atomically update the host with the meeting_id
+    // The WHERE clause ensures we only update if meeting_id is still NULL
+    // This prevents race conditions - if another process allocated it first, this will return 0 rows
+    const { data: updatedHost, error: updateError } = await this.supabaseAdmin
+      .from('zoom_hosts')
+      .update({ meeting_id: meetingId })
+      .eq('id', host.id)
+      .is('meeting_id', null)
+      .select('id, zoom_user_id, email')
+      .single();
+
+    if (updateError || !updatedHost) {
+      // Host was already allocated by another process, retry
+      this.logger.warn(
+        `Host ${host.id} was already allocated, retrying allocation...`,
+      );
+      // Retry with a small delay to avoid tight loop
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return this.allocateHost(meetingId);
+    }
+
+    this.logger.log(
+      `Allocated host ${updatedHost.email} (${updatedHost.zoom_user_id}) for meeting ${meetingId}`,
+    );
+
+    return {
+      id: updatedHost.id,
+      zoom_user_id: updatedHost.zoom_user_id,
+      email: updatedHost.email,
+    };
+  }
+
+  /**
+   * Release a Zoom host by setting meeting_id to NULL
+   */
+  async releaseHost(meetingId: string): Promise<void> {
+    const { error } = await this.supabaseAdmin
+      .from('zoom_hosts')
+      .update({ meeting_id: null })
+      .eq('meeting_id', meetingId);
+
+    if (error) {
+      this.logger.error(`Failed to release host for meeting ${meetingId}: ${error.message}`);
+      // Don't throw - this is a cleanup operation, failure shouldn't break the flow
+      return;
+    }
+
+    this.logger.log(`Released host for meeting ${meetingId}`);
+  }
+
+  /**
+   * Create a Zoom meeting with host allocation
    */
   async createMeeting(
     meetingData: CreateZoomMeetingDto,
   ): Promise<ZoomCreateMeetingResponseDto> {
     const accessToken = await this.getBearerToken();
-    const user = await this.getCurrentUser(accessToken.access_token);
-    const userId = user.id;
+    
+    // Allocate an available host before creating the meeting
+    // We'll use a temporary ID first, then update with the actual Zoom meeting ID
+    const tempMeetingId = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    let allocatedHost;
 
+    try {
+      allocatedHost = await this.allocateHost(tempMeetingId);
+    } catch (error: any) {
+      this.logger.error(`Failed to allocate host: ${error.message}`);
+      throw new Error(
+        `Failed to allocate Zoom host: ${error.message}. Please ensure you have available licensed Zoom users.`,
+      );
+    }
+
+    const userId = allocatedHost.zoom_user_id;
     const url = `${this.zoomApiBaseUrl}/users/${userId}/meetings`;
 
     try {
@@ -849,15 +949,47 @@ export class ZoomService {
         this.logger.error(
           `Failed to create Zoom meeting: ${response.status} - ${errorText}`,
         );
+        
+        // Release the host if meeting creation failed
+        await this.releaseHost(tempMeetingId).catch((e) =>
+          this.logger.error(`Failed to release host after error: ${e}`),
+        );
+        
         throw new Error(
           `Failed to create Zoom meeting: ${response.status} - ${errorText}`,
         );
       }
 
       const data = (await response.json()) as ZoomCreateMeetingResponseDto;
-      this.logger.log(`Successfully created Zoom meeting: ${data.id}`);
+      
+      // Update the host allocation with the actual Zoom meeting ID
+      const zoomMeetingId = data.id.toString();
+      const { error: updateError } = await this.supabaseAdmin
+        .from('zoom_hosts')
+        .update({ meeting_id: zoomMeetingId })
+        .eq('id', allocatedHost.id)
+        .eq('meeting_id', tempMeetingId);
+
+      if (updateError) {
+        this.logger.error(
+          `Failed to update host with actual meeting ID: ${updateError.message}`,
+        );
+        // Try to release the host
+        await this.releaseHost(tempMeetingId).catch((e) =>
+          this.logger.error(`Failed to release host: ${e}`),
+        );
+        // Continue anyway - the meeting was created successfully
+      }
+
+      this.logger.log(
+        `Successfully created Zoom meeting: ${data.id} with host ${allocatedHost.email}`,
+      );
       return data;
     } catch (error) {
+      // Release the host if meeting creation failed
+      await this.releaseHost(tempMeetingId).catch((e) =>
+        this.logger.error(`Failed to release host after error: ${e}`),
+      );
       this.logger.error(`Error creating Zoom meeting: ${error}`);
       throw error;
     }
@@ -969,6 +1101,15 @@ export class ZoomService {
       }
 
       this.logger.log(`Successfully deleted Zoom meeting: ${meetingId}`);
+
+      // Release the allocated host
+      const meetingIdStr = meetingId.toString();
+      await this.releaseHost(meetingIdStr).catch((error) => {
+        this.logger.error(
+          `Failed to release host for meeting ${meetingIdStr}: ${error.message}`,
+        );
+        // Don't throw - meeting was deleted successfully, host release failure is non-critical
+      });
     } catch (error) {
       this.logger.error(`Error deleting Zoom meeting: ${error}`);
       throw error;

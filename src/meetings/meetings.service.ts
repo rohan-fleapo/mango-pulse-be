@@ -337,7 +337,7 @@ export class MeetingsService {
           duration ||
           (new Date(meetingTyped.scheduled_end_date).getTime() -
             new Date(meetingTyped.start_date).getTime()) /
-          60000;
+            60000;
         updateDbData.scheduled_end_date = new Date(
           new Date(startTime).getTime() + durationInMinutes * 60000,
         ).toISOString();
@@ -389,10 +389,19 @@ export class MeetingsService {
       if (!isNaN(zoomIdNum)) {
         try {
           await this.zoomService.deleteMeeting(zoomIdNum);
+          // Host will be released automatically by deleteMeeting
         } catch (e) {
           this.logger.warn(
             `Failed to delete from Zoom (might be already deleted): ${e}`,
           );
+          // If delete failed, still try to release the host
+          try {
+            await this.zoomService.releaseHost(meetingTyped.meeting_id);
+          } catch (releaseError) {
+            this.logger.warn(
+              `Failed to release host for meeting ${meetingTyped.meeting_id}: ${releaseError}`,
+            );
+          }
         }
       }
     }

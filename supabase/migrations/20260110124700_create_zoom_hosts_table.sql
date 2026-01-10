@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS zoom_hosts (
+  id SERIAL PRIMARY KEY,
+  zoom_user_id TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  meeting_id TEXT
+);
+
+ALTER TABLE zoom_hosts ENABLE ROW LEVEL SECURITY;
+

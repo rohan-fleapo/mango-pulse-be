@@ -43,6 +43,7 @@ export class ZoomService {
 
     this.logger.log(`Received Zoom webhook event: ${event}`);
 
+    
     switch (event) {
       case 'endpoint.url_validation':
         const hashForValidate = crypto

@@ -364,7 +364,7 @@ export class MeetingsService {
       query = query.eq('id', input.meetingId);
     }
 
-    query = query.order('start_date', { ascending: true });
+    query = query.order('start_date', { ascending: false });
 
     const { data, error } = await query;
 

@@ -60,4 +60,7 @@ export class UserResponseDto {
     example: '2026-01-08T10:00:00.000Z',
   })
   updatedAt?: string;
+
+  @ApiPropertyOptional()
+  isPro?: boolean;
 }

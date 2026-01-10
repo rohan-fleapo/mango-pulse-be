@@ -166,12 +166,12 @@ export class AuthService {
     const { data, error } = await supabase
       .from('users')
       .select(
-        'id, email, name, tag_mango_id, role, created_at, phone, is_onboarded',
+        'id, email, name, tag_mango_id, role, created_at, phone, is_onboarded, is_pro',
       )
       .eq('id', input.userId)
       .single();
 
-    if (error || !data) {
+    if (error) {
       throw new UnauthorizedException('User not found');
     }
 
@@ -185,6 +185,7 @@ export class AuthService {
       role: user.role,
       phone: user.phone,
       isOnboarded: user.is_onboarded,
+      isPro: user.is_pro,
       createdAt: user.created_at,
     };
   }

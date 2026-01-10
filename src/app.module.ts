@@ -29,7 +29,7 @@ import { ZoomModule } from './zoom/zoom.module';
     ZoomModule,
     MeetingsModule,
     AnalyticsModule,
-    AnalyticsModule,
+
     WhatsAppModule,
     PaymentsModule,
   ],

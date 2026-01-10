@@ -596,6 +596,7 @@ export class AnalyticsService {
         meetingInfo.start,
         Date.parse(activity.joining_time),
       );
+
       const leave = Math.min(
         meetingInfo.end,
         activity.leaving_time
@@ -615,9 +616,13 @@ export class AnalyticsService {
         }
 
         const metrics = userMetrics.get(activity.user_id);
+
         metrics.totalDuration += duration;
-        metrics.meetingsAttended.add(activity.meeting_id);
-        metrics.totalMeetingDuration += meetingInfo.duration;
+
+        if (!metrics.meetingsAttended.has(activity.meeting_id)) {
+          metrics.totalMeetingDuration += meetingInfo.duration;
+          metrics.meetingsAttended.add(activity.meeting_id);
+        }
       }
     });
 

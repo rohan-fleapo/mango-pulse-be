@@ -1,12 +1,20 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
-import { PaymentsService } from './payments.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { PaymentsService } from './payments.service';
 
 @ApiTags('payments')
 @Controller('payments')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
@@ -47,5 +55,13 @@ export class PaymentsController {
     },
   ) {
     return this.paymentsService.verifyPayment(req.user.id, payload);
+  }
+
+  @Get('subscription-details')
+  @ApiOperation({ summary: 'Get subscription details' })
+  async getSubscriptionDetails(
+    @Query('subscription_id') subscriptionId: string,
+  ) {
+    return this.paymentsService.getSubscriptionDetails(subscriptionId);
   }
 }
